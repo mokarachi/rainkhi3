@@ -1,7 +1,6 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby7LsXeMc4o-iFMWrJ9Roa9oVH8fiz6ZGedeTYNP0wfWGqAWvOHdHdmQ6zqay3bEzmn/exec";
 
 
-
 const ALL_SLOTS = [
     "03:00 - 06:00 UTC",
     "06:00 - 09:00 UTC",
@@ -35,9 +34,11 @@ let workerViewingDate = "";
 let adminViewMode = "daily";
 
 let isMapMode = false;
+let isChartMode = false;
 let leafletMap = null;
 let mapMarkersLayerGroup = null;
 let currentAdminDataCache = null;
+let chartInstance = null;
 
 let masterStationsList = [];
 let selectedMasterTargetPhone = "";
@@ -163,15 +164,6 @@ async function requestWhatsAppOTP() {
     } catch (err) {
         otpMsg.className = "text-xs font-bold text-center text-red-600 bg-red-50 block p-2 rounded-xl";
         setText("otpMsg", "Error sending OTP.");
-    } font-bold text-center text-purple-700 bg-purple-50 block p-2 rounded-xl";
-            setText("otpMsg", "OTP sent! Check your WhatsApp.");
-        } else {
-            otpMsg.className = "text-xs font-bold text-center text-red-600 bg-red-50 block p-2 rounded-xl";
-            setText("otpMsg", "❌ " + data.message);
-        }
-    } catch (err) {
-        otpMsg.className = "text-xs font-bold text-center text-red-600 bg-red-50 block p-2 rounded-xl";
-        setText("otpMsg", "Error sending OTP.");
     } finally {
         sendBtn.disabled = false;
         sendBtn.innerText = "Send OTP to WhatsApp";
@@ -186,7 +178,7 @@ async function submitPinReset() {
     const resetBtn = document.getElementById("resetPinBtn");
 
     if (!otp || !newPin || newPin.length !== 4) {
-        otpMsg.className = "text-xs font-bold text-center text-red-600 bg-red-50 block p-2 rounded-xl";
+        otpMsg.className = "text-xs font-bold text-center text-red-600 block p-2 bg-red-50 rounded-xl";
         setText("otpMsg", "Please enter 4-digit OTP and 4-Digit New PIN.");
         return;
     }
@@ -222,25 +214,36 @@ async function submitPinReset() {
 function showDashboard() {
     document.getElementById("loginScreen").classList.add("hidden");
 
+    const toggleBar = document.getElementById("admin4WayToggleBar");
+
     if (userRole === "ADMIN" || userRole === "SILENT_ADMIN" || userRole === "OPERATIONAL_ADMIN") {
         document.getElementById("adminDashboard").classList.remove("hidden");
         document.getElementById("dataForm").classList.add("hidden");
         document.getElementById("appMainHeader").classList.remove("hidden");
 
         const logsBtn = document.getElementById("adminModeLogsBtn");
-        if (logsBtn) {
-            if (userRole === "ADMIN") logsBtn.classList.remove("hidden");
-            else logsBtn.classList.add("hidden");
-        }
-        
+        const monthlyBtn = document.getElementById("adminModeMonthlyBtn");
+        const usersBtn = document.getElementById("adminModeUsersBtn");
+
         if (userRole === "SILENT_ADMIN") {
+            // SILENT ADMIN: HIDE TOGGLE BAR COMPLETELY! STRICTLY DAILY VIEW ONLY!
+            if (toggleBar) toggleBar.classList.add("hidden");
             setText("adminSubHeading", "Silent Observer Admin (View-Only Mode)");
-        } else if (userRole === "OPERATIONAL_ADMIN") {
-            setText("adminSubHeading", "Duty Operational Admin (Can Amend Today & Yesterday)");
         } else {
-            setText("adminSubHeading", "Tap Any Cell in Table to Amend Reading");
+            if (toggleBar) toggleBar.classList.remove("hidden");
+            if (logsBtn) {
+                if (userRole === "ADMIN") logsBtn.classList.remove("hidden");
+                else logsBtn.classList.add("hidden");
+            }
+            if (userRole === "OPERATIONAL_ADMIN") {
+                setText("adminSubHeading", "Duty Operational Admin (Can Amend Today & Yesterday)");
+            } else {
+                setText("adminSubHeading", "Tap Any Cell in Table to Amend Reading");
+            }
         }
+
         setAdminViewMode("daily");
+
     } else {
         document.getElementById("dataForm").classList.remove("hidden");
         document.getElementById("adminDashboard").classList.add("hidden");
@@ -280,8 +283,11 @@ function logout() {
 }
 
 function setAdminViewMode(mode) {
+    if (userRole === "SILENT_ADMIN" && mode !== "daily") return; // SILENT ADMIN LOCKED TO DAILY
+
     adminViewMode = mode;
     isMapMode = false;
+    isChartMode = false;
     
     const dailyCtrl = document.getElementById("adminDailyControls");
     const monthlyCtrl = document.getElementById("adminMonthlyControls");
@@ -293,6 +299,7 @@ function setAdminViewMode(mode) {
     const logsTable = document.getElementById("adminLogsTableContainer");
     const usersTable = document.getElementById("adminUsersTableContainer");
     const mapContainer = document.getElementById("adminMapContainer");
+    const chartContainer = document.getElementById("adminChartContainer");
 
     dailyCtrl.classList.add("hidden");
     monthlyCtrl.classList.add("hidden");
@@ -304,29 +311,30 @@ function setAdminViewMode(mode) {
     logsTable.classList.add("hidden");
     usersTable.classList.add("hidden");
     mapContainer.classList.add("hidden");
+    chartContainer.classList.add("hidden");
 
-    updateMapToggleButtonText();
+    updateDisplayToggleButtons();
 
     const dailyBtn = document.getElementById("adminModeDailyBtn");
     const monthlyBtn = document.getElementById("adminModeMonthlyBtn");
     const logsBtn = document.getElementById("adminModeLogsBtn");
     const usersBtn = document.getElementById("adminModeUsersBtn");
 
-    dailyBtn.className = "w-1/4 py-1.5 rounded-lg text-slate-500 font-bold hover:text-slate-700";
-    monthlyBtn.className = "w-1/4 py-1.5 rounded-lg text-slate-500 font-bold hover:text-slate-700";
+    if (dailyBtn) dailyBtn.className = "w-1/4 py-1.5 rounded-lg text-slate-500 font-bold hover:text-slate-700";
+    if (monthlyBtn) monthlyBtn.className = "w-1/4 py-1.5 rounded-lg text-slate-500 font-bold hover:text-slate-700";
     if (logsBtn) logsBtn.className = "w-1/4 py-1.5 rounded-lg text-slate-500 font-bold hover:text-slate-700";
     if (usersBtn) usersBtn.className = "w-1/4 py-1.5 rounded-lg text-slate-500 font-bold hover:text-slate-700";
 
     if (mode === 'daily') {
         dailyCtrl.classList.remove("hidden");
         dailyTable.classList.remove("hidden");
-        dailyBtn.className = "w-1/4 py-1.5 rounded-lg bg-white shadow-sm text-blue-600 font-bold";
+        if (dailyBtn) dailyBtn.className = "w-1/4 py-1.5 rounded-lg bg-white shadow-sm text-blue-600 font-bold";
         document.getElementById("mainContainer").className = "bg-white p-4 sm:p-6 rounded-3xl shadow-xl w-full max-w-4xl border border-slate-200";
         loadAdminMasterSummary();
     } else if (mode === 'monthly') {
         monthlyCtrl.classList.remove("hidden");
         monthlyTable.classList.remove("hidden");
-        monthlyBtn.className = "w-1/4 py-1.5 rounded-lg bg-white shadow-sm text-purple-600 font-bold";
+        if (monthlyBtn) monthlyBtn.className = "w-1/4 py-1.5 rounded-lg bg-white shadow-sm text-purple-600 font-bold";
         document.getElementById("mainContainer").className = "bg-white p-4 sm:p-6 rounded-3xl shadow-xl w-full max-w-7xl border border-slate-200";
 
         const monthInput = document.getElementById("adminMonthPicker");
@@ -350,37 +358,57 @@ function setAdminViewMode(mode) {
     }
 }
 
-function toggleMapTableMode() {
-    isMapMode = !isMapMode;
-
+// 3-WAY DISPLAY TOGGLE: TABLE vs MAP 🌐 vs CHART 📈
+function setDisplayMode(mode) {
     const mapContainer = document.getElementById("adminMapContainer");
+    const chartContainer = document.getElementById("adminChartContainer");
     const dailyTable = document.getElementById("adminDailyTableContainer");
     const monthlyTable = document.getElementById("adminMonthlyTableContainer");
 
-    if (isMapMode) {
-        dailyTable.classList.add("hidden");
-        monthlyTable.classList.add("hidden");
-        mapContainer.classList.remove("hidden");
+    isMapMode = (mode === 'map');
+    isChartMode = (mode === 'chart');
 
+    mapContainer.classList.add("hidden");
+    chartContainer.classList.add("hidden");
+    dailyTable.classList.add("hidden");
+    monthlyTable.classList.add("hidden");
+
+    if (mode === 'map') {
+        mapContainer.classList.remove("hidden");
         initOrUpdateLeafletMap();
+    } else if (mode === 'chart') {
+        chartContainer.classList.remove("hidden");
+        renderBarChart();
     } else {
-        mapContainer.classList.add("hidden");
         if (adminViewMode === "daily") dailyTable.classList.remove("hidden");
         else if (adminViewMode === "monthly") monthlyTable.classList.remove("hidden");
     }
 
-    updateMapToggleButtonText();
+    updateDisplayToggleButtons();
 }
 
-function updateMapToggleButtonText() {
-    const dailyText = document.getElementById("mapToggleTextDaily");
-    const monthlyText = document.getElementById("mapToggleTextMonthly");
+function updateDisplayToggleButtons() {
+    const dailyButtons = ["dailyTableBtn", "dailyMapBtn", "dailyChartBtn"];
+    const monthlyButtons = ["monthlyTableBtn", "monthlyMapBtn", "monthlyChartBtn"];
 
-    const label = isMapMode ? "Table View" : "Map View";
-    const icon = isMapMode ? "fa-table-cells" : "fa-globe";
+    let activeType = "table";
+    if (isMapMode) activeType = "map";
+    if (isChartMode) activeType = "chart";
 
-    if (dailyText) dailyText.innerHTML = `<i class="fa-solid ${icon}"></i> ${label}`;
-    if (monthlyText) monthlyText.innerHTML = `<i class="fa-solid ${icon}"></i> ${label}`;
+    const updateSet = (btnIds) => {
+        btnIds.forEach(id => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            if (id.toLowerCase().includes(activeType)) {
+                btn.className = "bg-blue-600 text-white font-bold px-2.5 py-1 rounded-xl text-xs shadow transition";
+            } else {
+                btn.className = "bg-white border border-blue-200 text-blue-800 hover:bg-blue-100 font-bold px-2.5 py-1 rounded-xl text-xs transition";
+            }
+        });
+    };
+
+    updateSet(dailyButtons);
+    updateSet(monthlyButtons);
 }
 
 function initOrUpdateLeafletMap() {
@@ -458,6 +486,70 @@ function renderMapMarkers() {
     }
 }
 
+// RENDER INTERACTIVE CHART.JS BAR CHART 📈
+function renderBarChart() {
+    if (!currentAdminDataCache) return;
+
+    const ctx = document.getElementById("adminBarChartCanvas");
+    if (!ctx) return;
+
+    const stationMap = currentAdminDataCache.stations || {};
+    const labels = [];
+    const rainfallValues = [];
+    const barColors = [];
+
+    for (let st in stationMap) {
+        labels.push(st.replace('L_', 'Station '));
+        const stData = stationMap[st] || {};
+        let val = (adminViewMode === "daily") ? (parseFloat(stData.total) || 0) : (parseFloat(stData.monthly_total) || 0);
+        rainfallValues.push(val);
+
+        if (val === 0.01) barColors.push('#a855f7');
+        else if (val > 0 && val <= 10) barColors.push('#10b981');
+        else if (val > 10 && val <= 50) barColors.push('#2563eb');
+        else if (val > 50) barColors.push('#dc2626');
+        else barColors.push('#cbd5e1');
+    }
+
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: adminViewMode === 'daily' ? 'Daily Rain (mm)' : 'Monthly Total Rain (mm)',
+                data: rainfallValues,
+                backgroundColor: barColors,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: adminViewMode === 'daily' ? `Daily Rainfall Comparison (${currentAdminDataCache.rainfall_date})` : `Monthly Rainfall Comparison (${currentAdminDataCache.year_month})`,
+                    font: { size: 12, weight: 'bold' }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Rainfall (mm)' }
+                },
+                x: {
+                    ticks: { font: { size: 9 }, autoSkip: false, maxRotation: 45, minRotation: 45 }
+                }
+            }
+        }
+    });
+}
+
 function shiftSelectedSlot(offset) {
     let currentIdx = ALL_SLOTS.indexOf(currentSelectedSlot);
     if (currentIdx === -1) currentIdx = currentSlotIdx;
@@ -485,7 +577,7 @@ function updateSlotArrowButtons() {
 }
 
 function shiftWorkerDate(offsetDays) {
-    if (userRole === "FIELD_SUPERVISOR") return; // FIELD_SUPERVISOR CAN ONLY VIEW TODAY!
+    if (userRole === "FIELD_SUPERVISOR") return; // FIELD SUPERVISOR IS RESTRICTED TO TODAY!
 
     if (!workerViewingDate) workerViewingDate = todayRainfallDateGlobal;
 
@@ -797,7 +889,6 @@ function renderSlotsGrid() {
         const isSelected = (slot === currentSelectedSlot);
         
         const isFuture = !isViewingPastDate && (idx > currentSlotIdx);
-        // FIELD SUPERVISOR HAS NO PAST LOCKS ON TODAY'S DATE
         const isLockedPast = isViewingPastDate || ((userRole === "WORKER" || userRole === "MASTER_WORKER") && idx < (currentSlotIdx - 1));
 
         let pktLabel = DISPLAY_SLOT_LABELS[idx].pst;
@@ -1056,7 +1147,6 @@ async function loadAdminMasterSummary() {
                     if (isFuture) {
                         rowHtml += `<td class="p-1 border bg-slate-100 text-slate-300">🔒</td>`;
                     } else {
-                        // AMENDMENT ALLOWED FOR FULL ADMIN AND OPERATIONAL ADMIN
                         const isClickable = (userRole === "ADMIN" || userRole === "OPERATIONAL_ADMIN");
                         const safeSt = st.replace(/'/g, "\\'");
                         const safeVal = (val !== '--') ? String(val).replace(/'/g, "\\'") : '';
@@ -1322,7 +1412,6 @@ async function submitAdminAmend() {
     }
 }
 
-// REAL-TIME PDF EXPORT WITH DUAL PKT/UTC GENERATION TIMESTAMP
 function generateSinglePagePDF() {
     const now = new Date();
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
