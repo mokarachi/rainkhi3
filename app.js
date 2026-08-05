@@ -50,7 +50,10 @@ function getRecentUTCSlot() {
 
 window.onload = function() {
     const savedPhone = localStorage.getItem("worker_phone");
-    if (savedPhone) verifyLogin(savedPhone);
+    const savedPin = localStorage.getItem("worker_pin") || "";
+    if (savedPhone) {
+        verifyLogin(savedPhone, savedPin);
+    }
 };
 
 async function handleLogin() {
@@ -59,9 +62,9 @@ async function handleLogin() {
     const errorEl = document.getElementById("loginError");
     const loginBtn = document.getElementById("loginBtn");
 
-    if (!phone || !pin) {
+    if (!phone) {
         if (errorEl) {
-            errorEl.innerText = "Please enter Mobile Number and PIN Code.";
+            errorEl.innerText = "Please enter Mobile Number.";
             errorEl.classList.remove("hidden");
         }
         return;
@@ -84,12 +87,14 @@ async function verifyLogin(phone, pin = "") {
 
         if (data.status === "success") {
             localStorage.setItem("worker_phone", phone);
+            localStorage.setItem("worker_pin", pin);
             userRole = data.role;
             stationName = data.station;
             if (errorEl) errorEl.classList.add("hidden");
             showDashboard();
         } else {
             localStorage.removeItem("worker_phone");
+            localStorage.removeItem("worker_pin");
             if (errorEl) {
                 errorEl.innerText = "❌ " + data.message;
                 errorEl.classList.remove("hidden");
@@ -158,7 +163,7 @@ async function submitPinReset() {
     const resetBtn = document.getElementById("resetPinBtn");
 
     if (!otp || !newPin || newPin.length !== 4) {
-        otpMsg.className = "text-xs font-bold text-center text-red-600 bg-red-50 block p-2 rounded-xl";
+        otpMsg.className = "text-xs font-bold text-center text-red-600 block p-2 bg-red-50 rounded-xl";
         setText("otpMsg", "Please enter 4-digit OTP and 4-Digit New PIN.");
         return;
     }
@@ -235,6 +240,7 @@ function showDashboard() {
 
 function logout() {
     localStorage.removeItem("worker_phone");
+    localStorage.removeItem("worker_pin");
     document.getElementById("dataForm").classList.add("hidden");
     document.getElementById("adminDashboard").classList.add("hidden");
     document.getElementById("loginScreen").classList.remove("hidden");
@@ -698,7 +704,6 @@ async function refreshTodayHistory() {
     }
 }
 
-// 4-COLUMN x 2-ROW GRID WITH "NEXT MORNING 00-03" LABEL
 function renderSlotsGrid() {
     const gridEl = document.getElementById("slotsGrid");
     if (!gridEl) return;
@@ -713,7 +718,7 @@ function renderSlotsGrid() {
         const isLockedPast = ((userRole === "WORKER" || userRole === "MASTER_WORKER") && idx < (currentSlotIdx - 1));
 
         let slotLabel = slot.substring(0, 5);
-        if (idx === 7) slotLabel = "N.Morn 00-03"; // Explicit Next Morning Label
+        if (idx === 7) slotLabel = "N.Morn 00-03";
 
         let displayVal = "--";
         if (isFilled) {
@@ -1169,7 +1174,7 @@ function setModalTrace() {
     document.getElementById("modalInput").value = "0.01";
 }
 
-// PASSES EXPLICIT TARGET_DATE BEING VIEWED BY ADMIN ON MATRIX TABLE
+// FIX: PASSES EXPLICIT TARGET_DATE BEING VIEWED BY ADMIN ON MATRIX TABLE
 async function submitAdminAmend() {
     const adminPhone = localStorage.getItem("worker_phone");
     const val = document.getElementById("modalInput").value;
@@ -1251,6 +1256,3 @@ function generateSinglePagePDF() {
 
     window.print();
 }
-
-
-
