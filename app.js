@@ -1,5 +1,6 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby7LsXeMc4o-iFMWrJ9Roa9oVH8fiz6ZGedeTYNP0wfWGqAWvOHdHdmQ6zqay3bEzmn/exec";
 
+
 const ALL_SLOTS = [
     "03:00 - 06:00 UTC",
     "06:00 - 09:00 UTC",
@@ -697,6 +698,7 @@ function setTraceValue() {
     document.getElementById("rainfallInput").value = "0.01";
 }
 
+// ENFORCES 3-EDIT LIMIT LOCKING ON INPUT & BUTTON
 function selectSlot(slot) {
     currentSelectedSlot = slot;
     setText("selectedSlotText", slot);
@@ -708,7 +710,24 @@ function selectSlot(slot) {
     }
 
     const edits = editCounts[slot] || 0;
-    setText("editCountBadge", `Slot Updates: ${edits}/3`);
+    const submitBtn = document.getElementById("submitBtn");
+    const rainfallInput = document.getElementById("rainfallInput");
+
+    if (edits >= 3 && (userRole === "WORKER" || userRole === "MASTER_WORKER")) {
+        setText("editCountBadge", "🚫 Max Updates Reached (3/3)");
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.className = "bg-slate-300 text-slate-500 font-bold py-2.5 px-6 rounded-xl cursor-not-allowed text-xs";
+        }
+        if (rainfallInput) rainfallInput.disabled = true;
+    } else {
+        setText("editCountBadge", `Slot Updates: ${edits}/3`);
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.className = "bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl shadow transition text-xs cursor-pointer";
+        }
+        if (rainfallInput) rainfallInput.disabled = false;
+    }
 
     updateSlotArrowButtons();
     renderSlotsGrid();
@@ -805,6 +824,7 @@ function renderSlotsGrid() {
     });
 }
 
+// VERIFIES REAL SAVE IN GOOGLE SHEETS BEFORE CONFIRMING
 async function submitData() {
     const phone = localStorage.getItem("worker_phone");
     const targetPhone = (userRole === "MASTER_WORKER") ? selectedMasterTargetPhone : phone;
@@ -845,16 +865,28 @@ async function submitData() {
             body: JSON.stringify(payload)
         });
 
-        statusMsg.className = "text-xs font-bold text-center p-2 rounded-xl text-emerald-700 bg-emerald-50 block";
-        setText("statusMsg", `✅ Saved ${rainfall === "0.01" ? "Trace (T)" : rainfall + " mm"} for [${currentSelectedSlot}]!`);
-        document.getElementById("rainfallInput").value = "";
-        
-        setTimeout(refreshTodayHistory, 1000);
+        // Re-fetch history to verify Google Sheets actually updated
+        setTimeout(async () => {
+            await refreshTodayHistory(workerViewingDate);
+            
+            const expectedVal = parseFloat(rainfall);
+            const savedVal = todayEntries[currentSelectedSlot];
+
+            if (savedVal === expectedVal || (expectedVal === 0.01 && savedVal === 0.01)) {
+                statusMsg.className = "text-xs font-bold text-center p-2 rounded-xl text-emerald-700 bg-emerald-50 block";
+                setText("statusMsg", `✅ Saved ${rainfall === "0.01" ? "Trace (T)" : rainfall + " mm"} for [${currentSelectedSlot}]!`);
+                document.getElementById("rainfallInput").value = "";
+            } else {
+                statusMsg.className = "text-xs font-bold text-center p-2 rounded-xl text-red-600 bg-red-50 block";
+                setText("statusMsg", "❌ Save Error: Max 3 updates reached or slot locked.");
+            }
+            submitBtn.disabled = false;
+            submitBtn.innerText = "Save Reading";
+        }, 1200);
 
     } catch (error) {
         statusMsg.className = "text-xs font-bold text-center p-2 rounded-xl text-red-600 bg-red-50 block";
         setText("statusMsg", "❌ Network Error: " + error.message);
-    } finally {
         submitBtn.disabled = false;
         submitBtn.innerText = "Save Reading";
     }
@@ -908,7 +940,7 @@ async function submitAccumulativeData() {
         accSubmitBtn.disabled = false;
         accSubmitBtn.innerText = "Save Accumulative Reading";
         document.getElementById("accRainfallInput").value = "";
-        setTimeout(refreshTodayHistory, 1500);
+        setTimeout(() => refreshTodayHistory(workerViewingDate), 1500);
 
     } catch (error) {
         statusMsg.className = "text-xs font-bold text-center p-2 rounded-xl text-red-600 bg-red-50 block";
@@ -1269,7 +1301,7 @@ async function submitAdminAmend() {
     }
 }
 
-// GENERATES REAL REPORT GENERATION TIMESTAMP (e.g. 04:19 UTC 05 August 2026 / 09:19 PKT)
+// REAL-TIME PDF EXPORT WITH DUAL PKT/UTC GENERATION TIMESTAMP
 function generateSinglePagePDF() {
     const now = new Date();
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -1280,7 +1312,6 @@ function generateSinglePagePDF() {
     const utcMonth = months[now.getUTCMonth()];
     const utcYear = now.getUTCFullYear();
 
-    // Calculate PKT (UTC + 5)
     const pktDateObj = new Date(now.getTime() + (5 * 60 * 60 * 1000));
     const pktHours = String(pktDateObj.getUTCHours()).padStart(2, '0');
     const pktMins = String(pktDateObj.getUTCMinutes()).padStart(2, '0');
@@ -1290,35 +1321,30 @@ function generateSinglePagePDF() {
     const formattedTimestamp = `${utcHours}:${utcMins} UTC ${utcDay} ${utcMonth} ${utcYear} (${pktHours}:${pktMins} PKT ${pktDay} ${pktMonth})`;
     
     setText("printGeneratedTime", formattedTimestamp);
-    
-    const printStyleEl = document.getElementById("printStyleTag");
-    if (adminViewMode === "monthly") {
-        printStyleEl.innerHTML = `
-            @media print {
-                body { background: white !important; padding: 0 !important; font-size: 8px !important; }
-                .no-print { display: none !important; }
-                .print-only { display: block !important; }
-                #adminDashboard { display: block !important; max-width: 100% !important; width: 100% !important; padding: 0 !important; }
-                table { width: 100% !important; border-collapse: collapse !important; margin-top: 5px !important; }
-                th, td { border: 1px solid #94a3b8 !important; padding: 2px 3px !important; text-align: center !important; }
-                th { background-color: #f1f5f9 !important; color: #0f172a !important; font-weight: bold !important; }
-                @page { size: A4 landscape; margin: 5mm; }
-            }
-        `;
-    } else {
-        printStyleEl.innerHTML = `
-            @media print {
-                body { background: white !important; padding: 0 !important; font-size: 10px !important; }
-                .no-print { display: none !important; }
-                .print-only { display: block !important; }
-                #adminDashboard { display: block !important; max-width: 100% !important; width: 100% !important; padding: 0 !important; }
-                table { width: 100% !important; border-collapse: collapse !important; margin-top: 10px !important; }
-                th, td { border: 1px solid #94a3b8 !important; padding: 4px 5px !important; text-align: center !important; }
-                th { background-color: #f1f5f9 !important; color: #0f172a !important; font-weight: bold !important; }
-                @page { size: A4 portrait; margin: 8mm; }
-            }
-        `;
-    }
 
-    window.print();
+    const element = document.getElementById("adminDashboard");
+    const isMonthly = (adminViewMode === "monthly");
+    const fileName = isMonthly ? `Monsoon_Monthly_Report_${document.getElementById("adminMonthPicker").value}.pdf` : `Monsoon_Daily_Report_${document.getElementById("adminDatePicker").value}.pdf`;
+
+    const opt = {
+        margin:       [5, 5, 5, 5],
+        filename:     fileName,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: isMonthly ? 'landscape' : 'portrait' }
+    };
+
+    if (typeof html2pdf !== 'undefined') {
+        const noPrintEls = document.querySelectorAll('.no-print');
+        noPrintEls.forEach(el => el.style.display = 'none');
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            noPrintEls.forEach(el => el.style.display = '');
+        }).catch(err => {
+            noPrintEls.forEach(el => el.style.display = '');
+            window.print();
+        });
+    } else {
+        window.print();
+    }
 }
