@@ -1,6 +1,7 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby7LsXeMc4o-iFMWrJ9Roa9oVH8fiz6ZGedeTYNP0wfWGqAWvOHdHdmQ6zqay3bEzmn/exec";
 
 
+
 const ALL_SLOTS = [
     "03:00 - 06:00 UTC",
     "06:00 - 09:00 UTC",
@@ -162,6 +163,15 @@ async function requestWhatsAppOTP() {
     } catch (err) {
         otpMsg.className = "text-xs font-bold text-center text-red-600 bg-red-50 block p-2 rounded-xl";
         setText("otpMsg", "Error sending OTP.");
+    } font-bold text-center text-purple-700 bg-purple-50 block p-2 rounded-xl";
+            setText("otpMsg", "OTP sent! Check your WhatsApp.");
+        } else {
+            otpMsg.className = "text-xs font-bold text-center text-red-600 bg-red-50 block p-2 rounded-xl";
+            setText("otpMsg", "❌ " + data.message);
+        }
+    } catch (err) {
+        otpMsg.className = "text-xs font-bold text-center text-red-600 bg-red-50 block p-2 rounded-xl";
+        setText("otpMsg", "Error sending OTP.");
     } finally {
         sendBtn.disabled = false;
         sendBtn.innerText = "Send OTP to WhatsApp";
@@ -212,7 +222,7 @@ async function submitPinReset() {
 function showDashboard() {
     document.getElementById("loginScreen").classList.add("hidden");
 
-    if (userRole === "ADMIN" || userRole === "SILENT_ADMIN") {
+    if (userRole === "ADMIN" || userRole === "SILENT_ADMIN" || userRole === "OPERATIONAL_ADMIN") {
         document.getElementById("adminDashboard").classList.remove("hidden");
         document.getElementById("dataForm").classList.add("hidden");
         document.getElementById("appMainHeader").classList.remove("hidden");
@@ -225,6 +235,8 @@ function showDashboard() {
         
         if (userRole === "SILENT_ADMIN") {
             setText("adminSubHeading", "Silent Observer Admin (View-Only Mode)");
+        } else if (userRole === "OPERATIONAL_ADMIN") {
+            setText("adminSubHeading", "Duty Operational Admin (Can Amend Today & Yesterday)");
         } else {
             setText("adminSubHeading", "Tap Any Cell in Table to Amend Reading");
         }
@@ -236,7 +248,13 @@ function showDashboard() {
         document.getElementById("mainContainer").classList.replace("max-w-4xl", "max-w-md");
         document.getElementById("mainContainer").classList.replace("max-w-7xl", "max-w-md");
 
-        if (userRole === "MASTER_WORKER") {
+        if (userRole === "FIELD_SUPERVISOR") {
+            document.getElementById("masterWorkerSection").classList.add("hidden");
+            setText("displayStation", "Field Supervisor (" + stationName + ")");
+            populateAccumulativeSelects();
+            selectSlot(getRecentUTCSlot());
+            refreshTodayHistory();
+        } else if (userRole === "MASTER_WORKER") {
             document.getElementById("masterWorkerSection").classList.remove("hidden");
             setText("displayStation", "Master Worker");
             loadMasterStationsDropdown();
@@ -467,6 +485,8 @@ function updateSlotArrowButtons() {
 }
 
 function shiftWorkerDate(offsetDays) {
+    if (userRole === "FIELD_SUPERVISOR") return; // FIELD_SUPERVISOR CAN ONLY VIEW TODAY!
+
     if (!workerViewingDate) workerViewingDate = todayRainfallDateGlobal;
 
     let d = new Date(workerViewingDate + "T00:00:00Z");
@@ -482,7 +502,7 @@ function shiftWorkerDate(offsetDays) {
 function updateWorkerDateNextButton() {
     const nextBtn = document.getElementById("workerNextDateBtn");
     if (nextBtn) {
-        if (!workerViewingDate || workerViewingDate >= todayRainfallDateGlobal) {
+        if (!workerViewingDate || workerViewingDate >= todayRainfallDateGlobal || userRole === "FIELD_SUPERVISOR") {
             nextBtn.disabled = true;
             nextBtn.className = "text-blue-200 text-xs px-1 cursor-not-allowed opacity-50";
         } else {
@@ -698,7 +718,6 @@ function setTraceValue() {
     document.getElementById("rainfallInput").value = "0.01";
 }
 
-// ENFORCES 3-EDIT LIMIT LOCKING ON INPUT & BUTTON
 function selectSlot(slot) {
     currentSelectedSlot = slot;
     setText("selectedSlotText", slot);
@@ -721,7 +740,7 @@ function selectSlot(slot) {
         }
         if (rainfallInput) rainfallInput.disabled = true;
     } else {
-        setText("editCountBadge", `Slot Updates: ${edits}/3`);
+        setText("editCountBadge", (userRole === "FIELD_SUPERVISOR") ? "FIELD SUPERVISOR (No Edit Limit)" : `Slot Updates: ${edits}/3`);
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.className = "bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl shadow transition text-xs cursor-pointer";
@@ -778,6 +797,7 @@ function renderSlotsGrid() {
         const isSelected = (slot === currentSelectedSlot);
         
         const isFuture = !isViewingPastDate && (idx > currentSlotIdx);
+        // FIELD SUPERVISOR HAS NO PAST LOCKS ON TODAY'S DATE
         const isLockedPast = isViewingPastDate || ((userRole === "WORKER" || userRole === "MASTER_WORKER") && idx < (currentSlotIdx - 1));
 
         let pktLabel = DISPLAY_SLOT_LABELS[idx].pst;
@@ -824,7 +844,6 @@ function renderSlotsGrid() {
     });
 }
 
-// VERIFIES REAL SAVE IN GOOGLE SHEETS BEFORE CONFIRMING
 async function submitData() {
     const phone = localStorage.getItem("worker_phone");
     const targetPhone = (userRole === "MASTER_WORKER") ? selectedMasterTargetPhone : phone;
@@ -852,7 +871,7 @@ async function submitData() {
     const payload = {
         timestamp: new Date().toISOString(),
         phone: targetPhone,
-        master_worker_phone: (userRole === "MASTER_WORKER") ? phone : "",
+        master_worker_phone: (userRole === "MASTER_WORKER" || userRole === "FIELD_SUPERVISOR") ? phone : "",
         utc_slot: currentSelectedSlot,
         rainfall: parseFloat(rainfall)
     };
@@ -865,7 +884,6 @@ async function submitData() {
             body: JSON.stringify(payload)
         });
 
-        // Re-fetch history to verify Google Sheets actually updated
         setTimeout(async () => {
             await refreshTodayHistory(workerViewingDate);
             
@@ -919,7 +937,7 @@ async function submitAccumulativeData() {
     const payload = {
         timestamp: new Date().toISOString(),
         phone: targetPhone,
-        master_worker_phone: (userRole === "MASTER_WORKER") ? phone : "",
+        master_worker_phone: (userRole === "MASTER_WORKER" || userRole === "FIELD_SUPERVISOR") ? phone : "",
         start_slot_idx: startIdx,
         end_slot_idx: endIdx,
         rainfall: totalRain,
@@ -1038,7 +1056,8 @@ async function loadAdminMasterSummary() {
                     if (isFuture) {
                         rowHtml += `<td class="p-1 border bg-slate-100 text-slate-300">🔒</td>`;
                     } else {
-                        const isClickable = (userRole === "ADMIN");
+                        // AMENDMENT ALLOWED FOR FULL ADMIN AND OPERATIONAL ADMIN
+                        const isClickable = (userRole === "ADMIN" || userRole === "OPERATIONAL_ADMIN");
                         const safeSt = st.replace(/'/g, "\\'");
                         const safeVal = (val !== '--') ? String(val).replace(/'/g, "\\'") : '';
 
@@ -1200,6 +1219,8 @@ async function loadAdminSystemUsers() {
                 let roleClass = "bg-slate-100 text-slate-700";
                 if (u.role === "ADMIN") roleClass = "bg-red-100 text-red-800";
                 else if (u.role === "SILENT_ADMIN") roleClass = "bg-indigo-100 text-indigo-800";
+                else if (u.role === "OPERATIONAL_ADMIN") roleClass = "bg-amber-100 text-amber-800";
+                else if (u.role === "FIELD_SUPERVISOR") roleClass = "bg-teal-100 text-teal-800";
                 else if (u.role === "MASTER_WORKER") roleClass = "bg-purple-100 text-purple-800";
                 else if (u.role === "WORKER") roleClass = "bg-blue-100 text-blue-800";
 
@@ -1233,7 +1254,7 @@ function jumpToDailyDate(dateStr) {
 }
 
 function openAdminModal(phone, station, slot, currentVal) {
-    if (userRole !== "ADMIN") return;
+    if (userRole !== "ADMIN" && userRole !== "OPERATIONAL_ADMIN") return;
     
     modalTargetPhone = phone;
     modalTargetStation = station;
