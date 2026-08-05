@@ -11,7 +11,6 @@ const ALL_SLOTS = [
     "00:00 - 03:00 UTC"
 ];
 
-// Display Slot Labels: PST / PKT Bold Observation Time + Small UTC
 const DISPLAY_SLOT_LABELS = [
     { pst: "11:00 PKT", utc: "(06:00 UTC)" },
     { pst: "14:00 PKT", utc: "(09:00 UTC)" },
@@ -30,7 +29,7 @@ let editCounts = {};
 let currentSlotIdx = 0;
 let currentSelectedSlot = "";
 let todayRainfallDateGlobal = "";
-let workerViewingDate = ""; // Current date viewed by worker
+let workerViewingDate = "";
 let adminViewMode = "daily";
 
 let isMapMode = false;
@@ -52,7 +51,6 @@ function setText(id, text) {
     if (el) el.innerText = text;
 }
 
-// Client-side slot calculator matching server-side 15-min end buffer
 function getRecentUTCSlot() {
     const now = new Date();
     const totalMins = now.getUTCHours() * 60 + now.getUTCMinutes();
@@ -441,7 +439,6 @@ function renderMapMarkers() {
     }
 }
 
-// WORKER SLOT SHIFT ARROWS (◀ / ▶)
 function shiftSelectedSlot(offset) {
     let currentIdx = ALL_SLOTS.indexOf(currentSelectedSlot);
     if (currentIdx === -1) currentIdx = currentSlotIdx;
@@ -468,7 +465,6 @@ function updateSlotArrowButtons() {
     }
 }
 
-// WORKER DATE NAVIGATION ARROWS (◀ / ▶)
 function shiftWorkerDate(offsetDays) {
     if (!workerViewingDate) workerViewingDate = todayRainfallDateGlobal;
 
@@ -476,7 +472,7 @@ function shiftWorkerDate(offsetDays) {
     d.setUTCDate(d.getUTCDate() + offsetDays);
     let newDateStr = d.toISOString().split("T")[0];
 
-    if (todayRainfallDateGlobal && newDateStr > todayRainfallDateGlobal) return; // Prevent future dates
+    if (todayRainfallDateGlobal && newDateStr > todayRainfallDateGlobal) return;
 
     workerViewingDate = newDateStr;
     refreshTodayHistory(workerViewingDate);
@@ -750,7 +746,6 @@ async function refreshTodayHistory(customDate = "") {
     }
 }
 
-// 4-COLUMN x 2-ROW GRID WITH DUAL PKT/UTC LABELS
 function renderSlotsGrid() {
     const gridEl = document.getElementById("slotsGrid");
     if (!gridEl) return;
@@ -1274,13 +1269,27 @@ async function submitAdminAmend() {
     }
 }
 
+// GENERATES REAL REPORT GENERATION TIMESTAMP (e.g. 04:19 UTC 05 August 2026 / 09:19 PKT)
 function generateSinglePagePDF() {
-    // Generate Report Generation Footer Timestamp (e.g., 04:19 UTC 05 August 2026)
     const now = new Date();
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    const formattedUtc = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')} UTC ${String(now.getUTCDate()).padStart(2, '0')} ${months[now.getUTCMonth()]} ${now.getUTCFullYear()}`;
     
-    setText("printGeneratedTime", formattedUtc);
+    const utcHours = String(now.getUTCHours()).padStart(2, '0');
+    const utcMins = String(now.getUTCMinutes()).padStart(2, '0');
+    const utcDay = String(now.getUTCDate()).padStart(2, '0');
+    const utcMonth = months[now.getUTCMonth()];
+    const utcYear = now.getUTCFullYear();
+
+    // Calculate PKT (UTC + 5)
+    const pktDateObj = new Date(now.getTime() + (5 * 60 * 60 * 1000));
+    const pktHours = String(pktDateObj.getUTCHours()).padStart(2, '0');
+    const pktMins = String(pktDateObj.getUTCMinutes()).padStart(2, '0');
+    const pktDay = String(pktDateObj.getUTCDate()).padStart(2, '0');
+    const pktMonth = months[pktDateObj.getUTCMonth()];
+
+    const formattedTimestamp = `${utcHours}:${utcMins} UTC ${utcDay} ${utcMonth} ${utcYear} (${pktHours}:${pktMins} PKT ${pktDay} ${pktMonth})`;
+    
+    setText("printGeneratedTime", formattedTimestamp);
     
     const printStyleEl = document.getElementById("printStyleTag");
     if (adminViewMode === "monthly") {
