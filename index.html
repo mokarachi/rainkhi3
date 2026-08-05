@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,7 +75,7 @@
                 </div>
             </div>
 
-            <!-- UNIFIED TOP SUMMARY BANNER WITH EXPLICIT 24-HOUR CYCLE LABEL -->
+            <!-- UNIFIED TOP SUMMARY BANNER WITH WORKER DATE NAVIGATION ◀ ▶ -->
             <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-3 text-white shadow-md flex items-center justify-between">
                 <div class="space-y-0.5">
                     <div class="flex items-center gap-1.5">
@@ -83,9 +84,16 @@
                             <i class="fa-solid fa-right-from-bracket"></i>
                         </button>
                     </div>
-                    <p class="text-[9px] font-semibold text-blue-200 flex items-center gap-1.5">
-                        <span><i class="fa-regular fa-calendar mr-1"></i><span id="displayDateText">--</span></span>
-                        <span>• Slots: <strong id="summaryProgress" class="text-white">0/8</strong></span>
+                    <p class="text-[9px] font-semibold text-blue-200 flex items-center gap-1">
+                        <!-- WORKER DATE NAV ARROWS -->
+                        <button onclick="shiftWorkerDate(-1)" title="Previous Day" class="text-blue-200 hover:text-white text-xs px-0.5">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <span><span id="displayDateText">--</span></span>
+                        <button onclick="shiftWorkerDate(1)" id="workerNextDateBtn" title="Next Day" class="text-blue-200 hover:text-white text-xs px-0.5">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                        <span class="ml-1">• Slots: <strong id="summaryProgress" class="text-white">0/8</strong></span>
                     </p>
                 </div>
                 
@@ -100,7 +108,7 @@
                 <div>
                     <div class="flex justify-between items-center mb-1">
                         <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">Tap Slot to Select:</span>
-                        <button onclick="refreshTodayHistory()" class="text-[10px] font-bold text-blue-600 hover:underline">
+                        <button onclick="refreshTodayHistory(workerViewingDate)" class="text-[10px] font-bold text-blue-600 hover:underline">
                             <i class="fa-solid fa-rotate-right mr-0.5"></i> Refresh
                         </button>
                     </div>
@@ -120,14 +128,11 @@
                     <div class="flex justify-between items-center">
                         <div class="flex items-center gap-1.5">
                             <span class="text-[10px] font-black uppercase text-blue-700">Slot:</span>
-                            
                             <button onclick="shiftSelectedSlot(-1)" title="Previous Slot"
                                     class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-md text-xs transition">
                                 <i class="fa-solid fa-chevron-left"></i>
                             </button>
-                            
                             <span id="selectedSlotText" class="text-blue-900 font-extrabold text-xs bg-blue-100 px-2 py-0.5 rounded-md">--</span>
-                            
                             <button onclick="shiftSelectedSlot(1)" id="nextSlotBtn" title="Next Slot"
                                     class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-md text-xs transition">
                                 <i class="fa-solid fa-chevron-right"></i>
@@ -380,9 +385,9 @@
                 </table>
             </div>
 
-            <!-- PRINT FOOTER -->
+            <!-- PRINT FOOTER (EXPLICIT GENERATION TIMESTAMP) -->
             <div class="hidden print-only text-[10px] mt-3 flex justify-between">
-                <span>Generated On: <span id="printGeneratedTime"></span></span>
+                <span>Report Generated At: <span id="printGeneratedTime">--</span></span>
                 <span>Verified By: ___________________</span>
             </div>
 
