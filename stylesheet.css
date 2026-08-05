@@ -1,0 +1,22 @@
+/* Custom CSS for Monsoon Rainfall Dashboard */
+.leaflet-container {
+    font-family: inherit;
+    z-index: 10;
+}
+
+/* Custom Scrollbar for 7x3 Grid & Tables */
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 8px;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
