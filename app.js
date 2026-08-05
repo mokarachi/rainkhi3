@@ -1,7 +1,7 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGYlxgaYdQF5YgN764FdxD-A1_hCk37zzetHsmHMKB7w_Nc2fZN-irQycZCmSrB5EW/exec";
 
 
-
+const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
 
 const ALL_SLOTS = [
     "03:00 - 06:00 UTC",
@@ -701,6 +701,7 @@ async function refreshTodayHistory() {
     }
 }
 
+// 4-COLUMN x 2-ROW GRID WITH "NEXT MORNING 00-03" LABEL
 function renderSlotsGrid() {
     const gridEl = document.getElementById("slotsGrid");
     if (!gridEl) return;
@@ -713,6 +714,9 @@ function renderSlotsGrid() {
         
         const isFuture = (idx > currentSlotIdx);
         const isLockedPast = ((userRole === "WORKER" || userRole === "MASTER_WORKER") && idx < (currentSlotIdx - 1));
+
+        let slotLabel = slot.substring(0, 5);
+        if (idx === 7) slotLabel = "N.Morn 00-03"; // Explicit Next Morning Label
 
         let displayVal = "--";
         if (isFilled) {
@@ -740,7 +744,7 @@ function renderSlotsGrid() {
         gridEl.innerHTML += `
             <div onclick="${(!isFuture && !isLockedPast) ? `selectSlot('${slot}')` : ''}" class="${cardClass}">
                 <div class="flex justify-between items-center text-[9px] font-extrabold ${isSelected ? 'text-blue-100' : 'text-slate-400'}">
-                    <span>${slot.substring(0, 5)}</span>
+                    <span class="truncate">${slotLabel}</span>
                     <span class="${isFilled ? (isSelected ? 'text-white' : 'text-emerald-600') : ''}">${badgeText}</span>
                 </div>
                 <span class="font-black text-xs ${isSelected ? 'text-white' : (isFilled ? (rawVal === 'SEE_NEXT' ? 'text-purple-700' : 'text-emerald-700') : 'text-slate-300')}">
@@ -903,7 +907,7 @@ async function loadAdminMasterSummary() {
             setText("adminDateText", data.rainfall_date);
             setText("adminPrintDate", data.rainfall_date);
             setText("printHeaderTitle", "MONSOON DAILY RAINFALL SUMMARY REPORT");
-            setText("printHeaderSubtitle", `Meteorological Rainfall Date: ${data.rainfall_date} (03:00 UTC to 03:00 UTC)`);
+            setText("printHeaderSubtitle", `Meteorological Rainfall Date: ${data.rainfall_date} (03:00 UTC to 03:00 UTC Next Morning)`);
             
             if (dateInput && !dateInput.value) {
                 dateInput.value = data.rainfall_date;
@@ -1168,7 +1172,7 @@ function setModalTrace() {
     document.getElementById("modalInput").value = "0.01";
 }
 
-// FIX: PASSES EXPLICIT TARGET_DATE BEING VIEWED/EDITED BY ADMIN
+// PASSES EXPLICIT TARGET_DATE BEING VIEWED BY ADMIN ON MATRIX TABLE
 async function submitAdminAmend() {
     const adminPhone = localStorage.getItem("worker_phone");
     const val = document.getElementById("modalInput").value;
@@ -1193,7 +1197,7 @@ async function submitAdminAmend() {
         admin_phone: adminPhone,
         station: modalTargetStation,
         utc_slot: modalTargetSlot,
-        target_date: viewingDate, // Pass explicit date being viewed on matrix
+        target_date: viewingDate, // Pass explicit matrix date!
         rainfall: parseFloat(val)
     };
 
@@ -1250,3 +1254,6 @@ function generateSinglePagePDF() {
 
     window.print();
 }
+
+
+
