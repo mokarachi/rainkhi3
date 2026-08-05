@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGYlxgaYdQF5YgN764FdxD-A1_hCk37zzetHsmHMKB7w_Nc2fZN-irQycZCmSrB5EW/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby7LsXeMc4o-iFMWrJ9Roa9oVH8fiz6ZGedeTYNP0wfWGqAWvOHdHdmQ6zqay3bEzmn/exec";
 
 const ALL_SLOTS = [
     "03:00 - 06:00 UTC",
