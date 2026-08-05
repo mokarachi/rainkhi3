@@ -1,4 +1,5 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby7LsXeMc4o-iFMWrJ9Roa9oVH8fiz6ZGedeTYNP0wfWGqAWvOHdHdmQ6zqay3bEzmn/exec";
+const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
 
 const ALL_SLOTS = [
     "03:00 - 06:00 UTC",
@@ -11,6 +12,18 @@ const ALL_SLOTS = [
     "00:00 - 03:00 UTC"
 ];
 
+// Display Slot Labels: PST / PKT Bold Observation Time + Small UTC
+const DISPLAY_SLOT_LABELS = [
+    { pst: "11:00 PKT", utc: "(06:00 UTC)" },
+    { pst: "14:00 PKT", utc: "(09:00 UTC)" },
+    { pst: "17:00 PKT", utc: "(12:00 UTC)" },
+    { pst: "20:00 PKT", utc: "(15:00 UTC)" },
+    { pst: "23:00 PKT", utc: "(18:00 UTC)" },
+    { pst: "02:00 PKT", utc: "(21:00 UTC)" },
+    { pst: "05:00 PKT", utc: "(00:00 UTC)" },
+    { pst: "08:00 PKT", utc: "(Next Morn 03Z)" }
+];
+
 let userRole = "WORKER";
 let stationName = "";
 let todayEntries = {};
@@ -18,6 +31,7 @@ let editCounts = {};
 let currentSlotIdx = 0;
 let currentSelectedSlot = "";
 let todayRainfallDateGlobal = "";
+let workerViewingDate = ""; // Current date viewed by worker
 let adminViewMode = "daily";
 
 let isMapMode = false;
@@ -39,10 +53,11 @@ function setText(id, text) {
     if (el) el.innerText = text;
 }
 
+// Client-side slot calculator matching server-side 15-min end buffer
 function getRecentUTCSlot() {
     const now = new Date();
     const totalMins = now.getUTCHours() * 60 + now.getUTCMinutes();
-    const shiftedMins = (totalMins + 15) % 1440;
+    const shiftedMins = (totalMins - 165 + 1440) % 1440;
     const block = Math.floor(shiftedMins / 180);
     const SLOT_INDEX_MAP = [7, 0, 1, 2, 3, 4, 5, 6];
     return ALL_SLOTS[SLOT_INDEX_MAP[block]];
@@ -163,7 +178,7 @@ async function submitPinReset() {
     const resetBtn = document.getElementById("resetPinBtn");
 
     if (!otp || !newPin || newPin.length !== 4) {
-        otpMsg.className = "text-xs font-bold text-center text-red-600 block p-2 bg-red-50 rounded-xl";
+        otpMsg.className = "text-xs font-bold text-center text-red-600 bg-red-50 block p-2 rounded-xl";
         setText("otpMsg", "Please enter 4-digit OTP and 4-Digit New PIN.");
         return;
     }
@@ -427,6 +442,7 @@ function renderMapMarkers() {
     }
 }
 
+// WORKER SLOT SHIFT ARROWS (◀ / ▶)
 function shiftSelectedSlot(offset) {
     let currentIdx = ALL_SLOTS.indexOf(currentSelectedSlot);
     if (currentIdx === -1) currentIdx = currentSlotIdx;
@@ -449,6 +465,33 @@ function updateSlotArrowButtons() {
         } else {
             nextBtn.disabled = false;
             nextBtn.className = "bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-md text-xs transition cursor-pointer";
+        }
+    }
+}
+
+// WORKER DATE NAVIGATION ARROWS (◀ / ▶)
+function shiftWorkerDate(offsetDays) {
+    if (!workerViewingDate) workerViewingDate = todayRainfallDateGlobal;
+
+    let d = new Date(workerViewingDate + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() + offsetDays);
+    let newDateStr = d.toISOString().split("T")[0];
+
+    if (todayRainfallDateGlobal && newDateStr > todayRainfallDateGlobal) return; // Prevent future dates
+
+    workerViewingDate = newDateStr;
+    refreshTodayHistory(workerViewingDate);
+}
+
+function updateWorkerDateNextButton() {
+    const nextBtn = document.getElementById("workerNextDateBtn");
+    if (nextBtn) {
+        if (!workerViewingDate || workerViewingDate >= todayRainfallDateGlobal) {
+            nextBtn.disabled = true;
+            nextBtn.className = "text-blue-200 text-xs px-1 cursor-not-allowed opacity-50";
+        } else {
+            nextBtn.disabled = false;
+            nextBtn.className = "text-blue-200 hover:text-white text-xs px-1 cursor-pointer";
         }
     }
 }
@@ -676,18 +719,21 @@ function selectSlot(slot) {
     renderSlotsGrid();
 }
 
-async function refreshTodayHistory() {
+async function refreshTodayHistory(customDate = "") {
     const phone = localStorage.getItem("worker_phone");
     const targetPhoneParam = (userRole === "MASTER_WORKER") ? selectedMasterTargetPhone : phone;
 
     try {
-        const response = await fetch(`${SCRIPT_URL}?action=get_worker_data&phone=${encodeURIComponent(phone)}&target_phone=${encodeURIComponent(targetPhoneParam)}`);
+        const response = await fetch(`${SCRIPT_URL}?action=get_worker_data&phone=${encodeURIComponent(phone)}&target_phone=${encodeURIComponent(targetPhoneParam)}&target_date=${encodeURIComponent(customDate)}`);
         const data = await response.json();
 
         if (data.status === "success") {
             todayEntries = data.entries || {};
             editCounts = data.edit_counts || {};
             currentSlotIdx = data.current_slot_idx;
+            todayRainfallDateGlobal = data.today_rainfall_date;
+            
+            if (!workerViewingDate) workerViewingDate = data.rainfall_date;
 
             setText("summaryTotalRain", data.total_mm.toFixed(1));
             setText("displayDateText", data.rainfall_date);
@@ -697,6 +743,7 @@ async function refreshTodayHistory() {
 
             populateAccumulativeSelects();
             updateSlotArrowButtons();
+            updateWorkerDateNextButton();
             renderSlotsGrid();
         }
     } catch (err) {
@@ -704,21 +751,24 @@ async function refreshTodayHistory() {
     }
 }
 
+// 4-COLUMN x 2-ROW GRID WITH DUAL PKT/UTC LABELS
 function renderSlotsGrid() {
     const gridEl = document.getElementById("slotsGrid");
     if (!gridEl) return;
     gridEl.innerHTML = "";
+
+    const isViewingPastDate = (workerViewingDate && todayRainfallDateGlobal && workerViewingDate < todayRainfallDateGlobal);
 
     ALL_SLOTS.forEach((slot, idx) => {
         const isFilled = todayEntries.hasOwnProperty(slot);
         const rawVal = isFilled ? todayEntries[slot] : null;
         const isSelected = (slot === currentSelectedSlot);
         
-        const isFuture = (idx > currentSlotIdx);
-        const isLockedPast = ((userRole === "WORKER" || userRole === "MASTER_WORKER") && idx < (currentSlotIdx - 1));
+        const isFuture = !isViewingPastDate && (idx > currentSlotIdx);
+        const isLockedPast = isViewingPastDate || ((userRole === "WORKER" || userRole === "MASTER_WORKER") && idx < (currentSlotIdx - 1));
 
-        let slotLabel = slot.substring(0, 5);
-        if (idx === 7) slotLabel = "N.Morn 00-03";
+        let pktLabel = DISPLAY_SLOT_LABELS[idx].pst;
+        let utcSubLabel = DISPLAY_SLOT_LABELS[idx].utc;
 
         let displayVal = "--";
         if (isFilled) {
@@ -727,10 +777,10 @@ function renderSlotsGrid() {
             else displayVal = rawVal + "m";
         }
 
-        let cardClass = "p-1.5 rounded-xl border transition flex flex-col justify-between h-[48px] text-center ";
+        let cardClass = "p-1.5 rounded-xl border transition flex flex-col justify-between h-[52px] text-center ";
         
         if (isFuture) cardClass += "bg-slate-100 border-slate-200 text-slate-300 opacity-60 cursor-not-allowed";
-        else if (isLockedPast) cardClass += "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed";
+        else if (isLockedPast && !isSelected) cardClass += "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed";
         else if (isSelected) cardClass += "bg-blue-600 text-white border-blue-600 shadow ring-2 ring-blue-600/30 cursor-pointer";
         else if (isFilled) {
             if (rawVal === "SEE_NEXT") cardClass += "bg-purple-50 border-purple-200 text-purple-900 cursor-pointer";
@@ -739,19 +789,23 @@ function renderSlotsGrid() {
 
         let badgeText = "Select";
         if (isFuture) badgeText = "🔒";
+        else if (isViewingPastDate) badgeText = "🔒";
         else if (isLockedPast) badgeText = "🔒";
         else if (isFilled) badgeText = (rawVal === "SEE_NEXT") ? "Merged" : "✓ Rec";
         else if (isSelected) badgeText = "Active";
 
         gridEl.innerHTML += `
-            <div onclick="${(!isFuture && !isLockedPast) ? `selectSlot('${slot}')` : ''}" class="${cardClass}">
-                <div class="flex justify-between items-center text-[9px] font-extrabold ${isSelected ? 'text-blue-100' : 'text-slate-400'}">
-                    <span class="truncate">${slotLabel}</span>
-                    <span class="${isFilled ? (isSelected ? 'text-white' : 'text-emerald-600') : ''}">${badgeText}</span>
+            <div onclick="${(!isFuture && !isViewingPastDate && !isLockedPast) ? `selectSlot('${slot}')` : ''}" class="${cardClass}">
+                <div class="flex justify-between items-center text-[9px]">
+                    <span class="font-black ${isSelected ? 'text-white' : 'text-slate-800'}">${pktLabel}</span>
+                    <span class="font-extrabold ${isFilled ? (isSelected ? 'text-white' : 'text-emerald-600') : 'text-slate-400'}">${badgeText}</span>
                 </div>
-                <span class="font-black text-xs ${isSelected ? 'text-white' : (isFilled ? (rawVal === 'SEE_NEXT' ? 'text-purple-700' : 'text-emerald-700') : 'text-slate-300')}">
-                    ${displayVal}
-                </span>
+                <div class="flex justify-between items-end">
+                    <span class="text-[8px] font-bold opacity-75 ${isSelected ? 'text-blue-200' : 'text-slate-400'}">${utcSubLabel}</span>
+                    <span class="font-black text-xs ${isSelected ? 'text-white' : (isFilled ? (rawVal === 'SEE_NEXT' ? 'text-purple-700' : 'text-emerald-700') : 'text-slate-300')}">
+                        ${displayVal}
+                    </span>
+                </div>
             </div>
         `;
     });
@@ -1174,7 +1228,6 @@ function setModalTrace() {
     document.getElementById("modalInput").value = "0.01";
 }
 
-// FIX: PASSES EXPLICIT TARGET_DATE BEING VIEWED BY ADMIN ON MATRIX TABLE
 async function submitAdminAmend() {
     const adminPhone = localStorage.getItem("worker_phone");
     const val = document.getElementById("modalInput").value;
@@ -1199,7 +1252,7 @@ async function submitAdminAmend() {
         admin_phone: adminPhone,
         station: modalTargetStation,
         utc_slot: modalTargetSlot,
-        target_date: viewingDate, // Pass explicit matrix date!
+        target_date: viewingDate,
         rainfall: parseFloat(val)
     };
 
@@ -1223,7 +1276,12 @@ async function submitAdminAmend() {
 }
 
 function generateSinglePagePDF() {
-    setText("printGeneratedTime", new Date().toUTCString());
+    // Generate Report Generation Footer Timestamp (e.g., 04:19 UTC 05 August 2026)
+    const now = new Date();
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const formattedUtc = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')} UTC ${String(now.getUTCDate()).padStart(2, '0')} ${months[now.getUTCMonth()]} ${now.getUTCFullYear()}`;
+    
+    setText("printGeneratedTime", formattedUtc);
     
     const printStyleEl = document.getElementById("printStyleTag");
     if (adminViewMode === "monthly") {
