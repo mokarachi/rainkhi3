@@ -6,6 +6,7 @@
     <title>Monsoon Rainfall Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="styles.css">
@@ -23,7 +24,7 @@
             <p class="text-[10px] font-semibold text-slate-400 mt-0.5">Meteorological Observation Network</p>
         </div>
 
-        <!-- LOGIN SCREEN WITH PIN & FORGOT PIN -->
+        <!-- LOGIN SCREEN -->
         <div id="loginScreen" class="space-y-3 no-print">
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Mobile Number</label>
@@ -73,6 +74,7 @@
                 </div>
             </div>
 
+            <!-- UNIFIED TOP SUMMARY BANNER WITH EXPLICIT 24-HOUR CYCLE LABEL -->
             <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-3 text-white shadow-md flex items-center justify-between">
                 <div class="space-y-0.5">
                     <div class="flex items-center gap-1.5">
@@ -81,18 +83,19 @@
                             <i class="fa-solid fa-right-from-bracket"></i>
                         </button>
                     </div>
-                    <p class="text-[10px] font-semibold text-blue-200 flex items-center gap-2">
+                    <p class="text-[9px] font-semibold text-blue-200 flex items-center gap-1.5">
                         <span><i class="fa-regular fa-calendar mr-1"></i><span id="displayDateText">--</span></span>
                         <span>• Slots: <strong id="summaryProgress" class="text-white">0/8</strong></span>
                     </p>
                 </div>
                 
                 <div class="text-right">
-                    <span class="text-[9px] font-extrabold uppercase text-blue-200 block tracking-wider">Today's Total</span>
+                    <span class="text-[8px] font-extrabold uppercase text-blue-200 block tracking-wider">Accumulated Rain (03:01Z - 03:00Z)</span>
                     <span class="text-2xl font-black leading-none tracking-tight"><span id="summaryTotalRain">0.0</span><span class="text-xs font-normal text-blue-200 ml-0.5">mm</span></span>
                 </div>
             </div>
 
+            <!-- STATION-WISE CONTAINER -->
             <div id="workerStationWiseContainer" class="space-y-2.5">
                 <div>
                     <div class="flex justify-between items-center mb-1">
@@ -117,11 +120,14 @@
                     <div class="flex justify-between items-center">
                         <div class="flex items-center gap-1.5">
                             <span class="text-[10px] font-black uppercase text-blue-700">Slot:</span>
+                            
                             <button onclick="shiftSelectedSlot(-1)" title="Previous Slot"
                                     class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-md text-xs transition">
                                 <i class="fa-solid fa-chevron-left"></i>
                             </button>
+                            
                             <span id="selectedSlotText" class="text-blue-900 font-extrabold text-xs bg-blue-100 px-2 py-0.5 rounded-md">--</span>
+                            
                             <button onclick="shiftSelectedSlot(1)" id="nextSlotBtn" title="Next Slot"
                                     class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-md text-xs transition">
                                 <i class="fa-solid fa-chevron-right"></i>
@@ -299,10 +305,9 @@
                 <p style="font-size: 10px;" id="printHeaderSubtitle">Meteorological Rainfall Date: <span id="adminPrintDate">--</span></p>
             </div>
 
-            <!-- GEOGRAPHICAL GIS MAP CONTAINER WITH LEGEND OVERLAY -->
+            <!-- MAP CONTAINER -->
             <div id="adminMapContainer" class="hidden relative h-[420px] w-full rounded-2xl border border-slate-200 shadow-inner overflow-hidden z-10">
                 <div id="leafletMapDiv" class="h-full w-full"></div>
-                <!-- VISUAL MAP LEGEND CARD -->
                 <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-md p-2.5 rounded-xl border border-slate-200 shadow-lg text-[10px] space-y-1 z-[1000]">
                     <p class="font-black text-slate-800 text-[11px] mb-1">🌧️ Rainfall Legend</p>
                     <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-400 border border-white"></span> No Rain (0.0 mm)</div>
@@ -359,7 +364,7 @@
                 </table>
             </div>
 
-            <!-- SYSTEM USERS LOGIN STATUS TABLE -->
+            <!-- SYSTEM USERS TABLE -->
             <div id="adminUsersTableContainer" class="hidden overflow-x-auto">
                 <table id="adminUsersTable" class="w-full text-[10px] text-left border-collapse">
                     <thead>
@@ -422,14 +427,12 @@
                 <button onclick="closeResetPinModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-base"></i></button>
             </div>
 
-            <!-- STEP 1: PHONE INPUT -->
             <div id="otpStep1" class="space-y-2">
                 <p class="text-[11px] text-slate-500">Enter your registered mobile number to receive a 4-digit reset OTP on WhatsApp.</p>
                 <input type="tel" id="resetPhoneInput" placeholder="Enter Mobile Number" class="w-full p-2.5 border rounded-xl font-bold text-slate-800 text-xs outline-none">
                 <button onclick="requestWhatsAppOTP()" id="sendOtpBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl text-xs shadow">Send OTP to WhatsApp</button>
             </div>
 
-            <!-- STEP 2: ENTER OTP & NEW PIN -->
             <div id="otpStep2" class="hidden space-y-2">
                 <p class="text-[11px] text-slate-500">Check WhatsApp for your 4-digit OTP code, then enter your new PIN below.</p>
                 <div>
