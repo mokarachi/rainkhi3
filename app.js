@@ -1,8 +1,5 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGYlxgaYdQF5YgN764FdxD-A1_hCk37zzetHsmHMKB7w_Nc2fZN-irQycZCmSrB5EW/exec";
 
-
-const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
-
 const ALL_SLOTS = [
     "03:00 - 06:00 UTC",
     "06:00 - 09:00 UTC",
