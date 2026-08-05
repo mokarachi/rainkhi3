@@ -1,5 +1,8 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzGYlxgaYdQF5YgN764FdxD-A1_hCk37zzetHsmHMKB7w_Nc2fZN-irQycZCmSrB5EW/exec";
 
+
+
+
 const ALL_SLOTS = [
     "03:00 - 06:00 UTC",
     "06:00 - 09:00 UTC",
@@ -103,7 +106,6 @@ async function verifyLogin(phone, pin = "") {
     }
 }
 
-// RESET PIN VIA WHATSAPP OTP
 function openResetPinModal() {
     document.getElementById("otpStep1").classList.remove("hidden");
     document.getElementById("otpStep2").classList.add("hidden");
@@ -352,7 +354,6 @@ function initOrUpdateLeafletMap() {
     if (!mapContainer) return;
 
     if (!leafletMap) {
-        // Centered on Karachi region (Lat: 24.93, Lon: 67.11)
         leafletMap = L.map('leafletMapDiv').setView([24.93, 67.11], 10);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -518,7 +519,7 @@ function populateMasterBatchSlotSelect() {
 async function loadMasterSlotWiseGrid() {
     const gridEl = document.getElementById("master7x3Grid");
     if (!gridEl) return;
-    gridEl.innerHTML = `<div class="col-span-3 p-4 text-center text-slate-400 font-bold">Loading 21 Stations Batch Grid...</div>`;
+    gridEl.innerHTML = `<div class="col-span-3 p-4 text-center text-slate-400 font-bold">Loading Stations Batch Grid...</div>`;
 
     const masterPhone = localStorage.getItem("worker_phone");
     const selectedSlot = document.getElementById("masterBatchSlotSelect").value;
@@ -1167,11 +1168,15 @@ function setModalTrace() {
     document.getElementById("modalInput").value = "0.01";
 }
 
+// FIX: PASSES EXPLICIT TARGET_DATE BEING VIEWED/EDITED BY ADMIN
 async function submitAdminAmend() {
     const adminPhone = localStorage.getItem("worker_phone");
     const val = document.getElementById("modalInput").value;
     const modalMsg = document.getElementById("modalMsg");
     const modalSaveBtn = document.getElementById("modalSaveBtn");
+    
+    const dateInput = document.getElementById("adminDatePicker");
+    const viewingDate = dateInput ? dateInput.value : "";
 
     if (val === "" || val < 0 || val > 300) {
         modalMsg.className = "text-xs font-bold text-center text-red-600 block";
@@ -1188,6 +1193,7 @@ async function submitAdminAmend() {
         admin_phone: adminPhone,
         station: modalTargetStation,
         utc_slot: modalTargetSlot,
+        target_date: viewingDate, // Pass explicit date being viewed on matrix
         rainfall: parseFloat(val)
     };
 
