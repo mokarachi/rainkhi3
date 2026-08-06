@@ -1,466 +1,413 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monsoon Rainfall Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- LEAFLET GIS MAP -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Karachi Monsoon Rainfall Observation System</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Leaflet GIS Mapping CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- HTML2PDF LIBRARY FOR DIRECT PDF DOWNLOAD -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- HTML2PDF CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    <link rel="stylesheet" href="styles.css">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <?!= include('styles'); ?>
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-2 sm:p-4 font-sans text-slate-800">
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans flex flex-col justify-between antialiased selection:bg-cyan-500 selection:text-white">
 
-    <div id="mainContainer" class="bg-white p-3.5 sm:p-5 rounded-3xl shadow-xl w-full max-w-md border border-slate-200">
-        
-        <!-- HEADER -->
-        <div id="appMainHeader" class="text-center mb-3 no-print">
-            <div class="inline-flex items-center justify-center w-10 h-10 bg-blue-100 text-blue-600 rounded-xl mb-1 shadow-sm">
-                <i class="fa-solid font-bold text-xl fa-cloud-showers-heavy"></i>
-            </div>
-            <h1 class="text-lg font-black text-slate-800 tracking-tight leading-none">Monsoon Rainfall System</h1>
-            <p class="text-[10px] font-semibold text-slate-400 mt-0.5">Meteorological Observation Network</p>
+  <!-- ==================== LOGIN VIEW ==================== -->
+  <div id="login-view" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 p-4">
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+      <div class="absolute -right-10 -top-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl"></div>
+      
+      <div class="text-center mb-6">
+        <div class="inline-flex p-3 bg-cyan-500/10 text-cyan-400 rounded-xl mb-3 ring-1 ring-cyan-500/30">
+          <i class="fa-solid me-0 fa-cloud-showers-heavy text-3xl"></i>
+        </div>
+        <h1 class="text-xl font-black tracking-tight text-white uppercase">Karachi Rainfall System</h1>
+        <p class="text-xs text-slate-400 mt-1">Enterprise Synoptic Observation Network</p>
+      </div>
+
+      <form id="login-form" class="space-y-4" onsubmit="handleLogin(event)">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Mobile Phone Number</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500"><i class="fa-solid fa-phone text-xs"></i></span>
+            <input type="tel" id="login-phone" required placeholder="923001234567" class="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition text-white">
+          </div>
         </div>
 
-        <!-- LOGIN SCREEN -->
-        <div id="loginScreen" class="space-y-3 no-print">
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Mobile Number</label>
-                <input type="tel" id="phoneNumberInput" placeholder="Enter Mobile Number" 
-                       class="w-full p-2.5 border border-slate-200 rounded-xl font-semibold text-slate-800 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">4-Digit Security PIN</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500"><i class="fa-solid fa-lock text-xs"></i></span>
+            <input type="password" id="login-pin" maxlength="4" required placeholder="••••" class="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm tracking-widest focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition text-white">
+          </div>
+        </div>
+
+        <button type="submit" id="login-btn" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white font-bold rounded-xl text-sm shadow-lg shadow-cyan-600/20 transition flex items-center justify-center space-x-2">
+          <span>Authenticate Station</span>
+          <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+      </form>
+
+      <div class="mt-4 text-center">
+        <button onclick="openOtpModal()" class="text-xs text-cyan-400 hover:underline">Forgot PIN? Reset via WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== WHATSAPP OTP MODAL ==================== -->
+  <div id="otp-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-bold text-white"><i class="fa-brands fa-whatsapp text-green-500 mr-2"></i>Reset Security PIN</h3>
+        <button onclick="closeOtpModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div id="otp-step-1" class="space-y-3">
+        <p class="text-xs text-slate-400">Enter your registered phone number to receive a 4-digit verification code on WhatsApp.</p>
+        <input type="tel" id="otp-phone" placeholder="923001234567" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500">
+        <button onclick="requestOtp()" class="w-full py-2.5 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl text-xs transition">Send OTP Code</button>
+      </div>
+
+      <div id="otp-step-2" class="space-y-3 hidden">
+        <p class="text-xs text-slate-400">Enter the 4-digit OTP sent to your WhatsApp and set a new security PIN.</p>
+        <input type="text" id="otp-code" maxlength="4" placeholder="OTP Code" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm tracking-widest text-white">
+        <input type="password" id="otp-new-pin" maxlength="4" placeholder="New 4-Digit PIN" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm tracking-widest text-white">
+        <button onclick="verifyAndResetPin()" class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-xl text-xs transition">Update PIN & Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN DASHBOARD CONTAINER ==================== -->
+  <div id="app-container" class="hidden flex-1 flex flex-col min-h-screen">
+    
+    <!-- TOP NAVIGATION BAR -->
+    <header class="bg-slate-950 border-b border-slate-800 sticky top-0 z-30 px-4 py-2.5 flex items-center justify-between shadow-md">
+      <div class="flex items-center space-x-3">
+        <div class="p-2 bg-cyan-500/10 text-cyan-400 rounded-lg">
+          <i class="fa-solid fa-cloud-showers-heavy text-base"></i>
+        </div>
+        <div>
+          <h2 id="header-station-name" class="text-xs font-bold text-white tracking-wide leading-tight">Station Name</h2>
+          <span id="header-role-badge" class="inline-block px-1.5 py-0.5 text-[10px] font-semibold bg-slate-800 text-cyan-400 rounded uppercase tracking-wider">Role</span>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <div class="text-right hidden sm:block">
+          <div id="header-utc-clock" class="text-xs font-mono font-semibold text-slate-300">00:00:00 UTC</div>
+          <div id="header-pkt-clock" class="text-[10px] text-slate-500">05:00:00 PKT</div>
+        </div>
+        <button onclick="handleLogout()" class="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-900 rounded-lg transition" title="Logout">
+          <i class="fa-solid fa-power-off text-sm"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN WORKSPACE -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 flex flex-col justify-center">
+
+      <!-- ================= WORKER DASHBOARD (Compact Zero-Scroll) ================= -->
+      <section id="worker-dashboard" class="hidden max-w-md mx-auto w-full space-y-3">
+        
+        <!-- Summary Header Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-lg flex items-center justify-between">
+          <div>
+            <div class="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Rainfall Date (03Z-03Z)</div>
+            <div class="flex items-center space-x-2 mt-0.5">
+              <button onclick="changeWorkerDate(-1)" class="p-1 text-slate-400 hover:text-white"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+              <span id="worker-date-display" class="text-sm font-bold text-cyan-400">2026-08-05</span>
+              <button onclick="changeWorkerDate(1)" id="worker-next-date-btn" class="p-1 text-slate-400 hover:text-white disabled:opacity-30" disabled><i class="fa-solid fa-chevron-right text-xs"></i></button>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Completed</div>
+            <div id="worker-progress-count" class="text-xs font-bold text-slate-200 mt-0.5">0 / 8 Slots</div>
+          </div>
+          <div class="text-right border-l border-slate-800 pl-3">
+            <div class="text-[10px] uppercase tracking-wider font-semibold text-slate-400">24h Total</div>
+            <div id="worker-daily-total" class="text-base font-black text-green-400 mt-0.5">0.0 mm</div>
+          </div>
+        </div>
+
+        <!-- 4x2 Slot Grid -->
+        <div id="worker-slot-grid" class="grid grid-cols-4 gap-2">
+          <!-- Rendered programmatically via app.js -->
+        </div>
+
+        <!-- Slot Input Controller Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+          <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+              <button onclick="navigateSlot(-1)" class="p-1.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+              <div>
+                <span id="selected-slot-pkt" class="text-xs font-extrabold text-white">11:00 PKT</span>
+                <span id="selected-slot-utc" class="text-[10px] text-slate-400 ml-1">(03:00 - 06:00 UTC)</span>
+              </div>
+              <button onclick="navigateSlot(1)" id="slot-next-btn" class="p-1.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+            </div>
+            <span id="slot-status-badge" class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">Active</span>
+          </div>
+
+          <!-- Multi-Slot Accumulation Toggle -->
+          <div id="accumulate-box" class="bg-slate-950 p-2.5 rounded-xl border border-slate-800/80 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="text-[11px] font-semibold text-slate-300 flex items-center">
+                <input type="checkbox" id="accumulate-check" onchange="toggleAccumulateMode()" class="mr-2 rounded border-slate-700 bg-slate-900 text-cyan-500">
+                Missed Earlier Slots? (Accumulate Total)
+              </label>
+            </div>
+            <div id="accumulate-selector" class="hidden flex items-center space-x-2 pt-1 text-xs text-slate-400">
+              <span>Start Slot:</span>
+              <select id="accumulate-start-slot" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs">
+                <!-- Dropdown options -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Rainfall Amount Entry Field -->
+          <div class="space-y-2">
+            <div class="relative">
+              <input type="number" step="0.1" min="0" id="rainfall-input" placeholder="0.0" class="w-full text-center text-3xl font-black py-2 bg-slate-950 border border-slate-800 rounded-xl focus:border-cyan-500 focus:outline-none text-white tracking-wider">
+              <span class="absolute right-4 top-4 text-xs font-bold text-slate-500">mm</span>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">4-Digit PIN Code</label>
-                <input type="password" maxlength="4" id="pinInput" placeholder="••••" 
-                       class="w-full p-2.5 border border-slate-200 rounded-xl font-black text-slate-800 text-lg outline-none tracking-widest focus:ring-2 focus:ring-blue-500">
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="setTraceValue()" class="py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold transition">
+                Set Trace (T)
+              </button>
+              <button type="button" onclick="submitWorkerReading()" id="save-reading-btn" class="py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-cyan-600/20 transition">
+                Save Reading
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= MASTER WORKER DASHBOARD ================= -->
+      <section id="master-worker-dashboard" class="hidden space-y-4 max-w-5xl mx-auto w-full">
+        <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-bold text-slate-300">Mode:</span>
+            <button id="mw-mode-single" onclick="setMasterWorkerMode('single')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-600 text-white">Station-Wise</button>
+            <button id="mw-mode-batch" onclick="setMasterWorkerMode('batch')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-400">Slot-Wise (7x3 Batch Grid)</button>
+          </div>
+
+          <div id="mw-station-select-container" class="flex items-center space-x-2">
+            <label class="text-xs text-slate-400 font-semibold">Station:</label>
+            <select id="mw-station-dropdown" onchange="renderMasterWorkerSingle()" class="bg-slate-950 border border-slate-800 rounded-xl text-xs px-3 py-1.5 text-white focus:outline-none">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+
+          <div id="mw-slot-select-container" class="hidden flex items-center space-x-2">
+            <label class="text-xs text-slate-400 font-semibold">Select Slot:</label>
+            <select id="mw-slot-dropdown" onchange="renderMasterWorkerBatch()" class="bg-slate-950 border border-slate-800 rounded-xl text-xs px-3 py-1.5 text-white focus:outline-none">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Master Worker Single Container -->
+        <div id="mw-single-container" class="max-w-md mx-auto"></div>
+
+        <!-- Master Worker 7x3 Grid Container -->
+        <div id="mw-batch-container" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+            <h3 class="text-sm font-bold text-cyan-400">21 Stations Observation Matrix</h3>
+            <button onclick="submitMasterBatch()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-cyan-600/20">
+              Save All Stations for Selected Slot
+            </button>
+          </div>
+          <div id="mw-batch-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <!-- 21 Station Entry Blocks rendered here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ADMIN CONTROL PANELS ================= -->
+      <section id="admin-dashboard" class="hidden space-y-4 w-full">
+        
+        <!-- Main Admin Navigation & View Controls -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
+          
+          <!-- View Tabs -->
+          <div id="admin-tabs" class="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button onclick="switchAdminTab('daily')" id="tab-btn-daily" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 text-white">📅 Daily</button>
+            <button onclick="switchAdminTab('monthly')" id="tab-btn-monthly" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">📆 Monthly</button>
+            <button onclick="switchAdminTab('audit')" id="tab-btn-audit" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">📜 Audit Log</button>
+            <button onclick="switchAdminTab('users')" id="tab-btn-users" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white">👥 System Users</button>
+          </div>
+
+          <!-- Date Selector / Controls -->
+          <div class="flex items-center space-x-2">
+            <div id="admin-daily-controls" class="flex items-center space-x-2">
+              <button onclick="changeAdminDate(-1)" class="p-1.5 bg-slate-800 text-slate-300 rounded-lg"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+              <input type="date" id="admin-date-picker" onchange="fetchAdminDailyData()" class="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5">
+              <button onclick="changeAdminDate(1)" id="admin-next-date-btn" class="p-1.5 bg-slate-800 text-slate-300 rounded-lg"><i class="fa-solid fa-chevron-right text-xs"></i></button>
             </div>
 
-            <button onclick="handleLogin()" id="loginBtn"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-md transition text-sm">
-                Sign In to Station
+            <div id="admin-monthly-controls" class="hidden flex items-center space-x-2">
+              <input type="month" id="admin-month-picker" onchange="fetchAdminMonthlyData()" class="bg-slate-950 border border-slate-800 text-xs text-white rounded-lg px-2.5 py-1.5">
+            </div>
+
+            <!-- Toggle View Mode: Table vs Map -->
+            <button id="toggle-map-btn" onclick="toggleMapView()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-bold rounded-lg text-xs border border-slate-700">
+              <i class="fa-solid fa-map-location-dot mr-1"></i> 🌐 Map View
             </button>
 
-            <div class="text-center pt-1">
-                <button onclick="openResetPinModal()" class="text-xs font-bold text-purple-600 hover:underline">
-                    Forgot PIN? Reset via WhatsApp
-                </button>
-            </div>
-
-            <p id="loginError" class="text-red-500 text-xs font-bold text-center hidden"></p>
+            <!-- Export PDF -->
+            <button onclick="exportReportPDF()" class="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 font-bold rounded-lg text-xs transition">
+              <i class="fa-solid fa-file-pdf mr-1"></i> PDF Export
+            </button>
+          </div>
         </div>
 
+        <!-- PRINTABLE REPORT WRAPPER -->
+        <div id="printable-area" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl min-h-[450px] relative">
+          
+          <!-- PRINT HEADER (Hides on UI, shows in PDF output) -->
+          <div id="print-header" class="hidden mb-4 border-b border-slate-700 pb-2">
+            <h1 class="text-lg font-black text-slate-900 tracking-tight uppercase">KARACHI MONSOON RAINFALL OBSERVATION SUMMARY</h1>
+            <p id="print-subtitle" class="text-xs font-bold text-slate-700">Daily Report dated 2026-08-05</p>
+          </div>
 
-        <!-- WORKER DASHBOARD -->
-        <div id="dataForm" class="hidden space-y-2.5 no-print">
-            
-            <div id="masterWorkerSection" class="hidden bg-purple-50 border border-purple-200 p-2 rounded-xl space-y-2">
-                <div class="flex bg-purple-100 p-0.5 rounded-lg text-[11px] font-bold text-center">
-                    <button onclick="setMasterViewMode('station_wise')" id="masterModeStationBtn" class="w-1/2 py-1 rounded-md bg-white text-purple-900 shadow-sm">
-                        📍 Station-Wise
-                    </button>
-                    <button onclick="setMasterViewMode('slot_wise')" id="masterModeSlotBtn" class="w-1/2 py-1 rounded-md text-purple-600 hover:text-purple-900">
-                        ⏰ Slot-Wise (7x3 Grid)
-                    </button>
-                </div>
+          <!-- Daily Table View -->
+          <div id="admin-daily-view" class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-950 text-slate-400 border-b border-slate-800">
+                  <th class="p-2.5 font-bold">Weather Station</th>
+                  <th class="p-2.5 text-center">06Z <br><span class="text-[9px] text-slate-500">11 PKT</span></th>
+                  <th class="p-2.5 text-center">09Z <br><span class="text-[9px] text-slate-500">14 PKT</span></th>
+                  <th class="p-2.5 text-center">12Z <br><span class="text-[9px] text-slate-500">17 PKT</span></th>
+                  <th class="p-2.5 text-center">15Z <br><span class="text-[9px] text-slate-500">20 PKT</span></th>
+                  <th class="p-2.5 text-center">18Z <br><span class="text-[9px] text-slate-500">23 PKT</span></th>
+                  <th class="p-2.5 text-center">21Z <br><span class="text-[9px] text-slate-500">02 PKT</span></th>
+                  <th class="p-2.5 text-center">00Z <br><span class="text-[9px] text-slate-500">05 PKT</span></th>
+                  <th class="p-2.5 text-center">03Z <br><span class="text-[9px] text-slate-500">08 PKT</span></th>
+                  <th class="p-2.5 text-right font-black text-cyan-400">Total (mm)</th>
+                </tr>
+              </thead>
+              <tbody id="daily-matrix-body" class="divide-y divide-slate-800/50 font-mono">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
 
-                <div id="masterStationSelectorBox" class="flex items-center gap-2">
-                    <span class="text-[10px] font-black text-purple-800 uppercase whitespace-nowrap"><i class="fa-solid fa-user-gear"></i> Station:</span>
-                    <select id="masterStationSelect" onchange="onMasterStationChange()" 
-                            class="w-full p-1.5 bg-white border border-purple-300 rounded-lg font-bold text-purple-900 text-xs outline-none focus:ring-2 focus:ring-purple-400">
-                    </select>
-                </div>
+          <!-- Monthly Table View -->
+          <div id="admin-monthly-view" class="hidden overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr id="monthly-table-header" class="bg-slate-950 text-slate-400 border-b border-slate-800">
+                  <!-- Rendered dynamically (Days 1 to 31) -->
+                </tr>
+              </thead>
+              <tbody id="monthly-matrix-body" class="divide-y divide-slate-800/50 font-mono">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- GIS Interactive Leaflet Map View -->
+          <div id="admin-map-view" class="hidden relative">
+            <div id="leaflet-map" class="w-full h-[500px] rounded-xl border border-slate-800 z-10"></div>
+            <!-- GIS Map Legend Box -->
+            <div class="absolute bottom-4 right-4 bg-slate-900/95 border border-slate-800 p-3 rounded-xl shadow-2xl z-20 text-[10px] space-y-1">
+              <div class="font-bold text-white mb-1 border-b border-slate-800 pb-1">Rainfall Scale (mm)</div>
+              <div class="flex items-center space-x-2"><span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span><span>0.0 (No Rain)</span></div>
+              <div class="flex items-center space-x-2"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span><span>Trace (T)</span></div>
+              <div class="flex items-center space-x-2"><span class="w-2.5 h-2.5 rounded-full bg-green-500"></span><span>Light (&lt; 10mm)</span></div>
+              <div class="flex items-center space-x-2"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span><span>Moderate (10 - 50mm)</span></div>
+              <div class="flex items-center space-x-2"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span><span>Heavy (&gt; 50mm)</span></div>
             </div>
+          </div>
 
-            <!-- UNIFIED TOP SUMMARY BANNER WITH WORKER DATE NAVIGATION ◀ ▶ -->
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-3 text-white shadow-md flex items-center justify-between">
-                <div class="space-y-0.5">
-                    <div class="flex items-center gap-1.5">
-                        <span id="displayStation" class="font-black text-xs sm:text-sm text-white truncate max-w-[170px]"></span>
-                        <button onclick="logout()" class="text-blue-200 hover:text-white text-xs px-1" title="Logout">
-                            <i class="fa-solid fa-right-from-bracket"></i>
-                        </button>
-                    </div>
-                    <p class="text-[9px] font-semibold text-blue-200 flex items-center gap-1.5">
-                        <button onclick="shiftWorkerDate(-1)" title="Previous Day" class="text-blue-200 hover:text-white text-xs px-0.5">
-                            <i class="fa-solid fa-chevron-left"></i>
-                        </button>
-                        <span><span id="displayDateText">--</span></span>
-                        <button onclick="shiftWorkerDate(1)" id="workerNextDateBtn" title="Next Day" class="text-blue-200 hover:text-white text-xs px-0.5">
-                            <i class="fa-solid fa-chevron-right"></i>
-                        </button>
-                        <span class="ml-1">• Slots: <strong id="summaryProgress" class="text-white">0/8</strong></span>
-                    </p>
-                </div>
-                
-                <div class="text-right">
-                    <span class="text-[8px] font-extrabold uppercase text-blue-200 block tracking-wider">Accumulated Rain (03:01Z - 03:00Z)</span>
-                    <span class="text-2xl font-black leading-none tracking-tight"><span id="summaryTotalRain">0.0</span><span class="text-xs font-normal text-blue-200 ml-0.5">mm</span></span>
-                </div>
-            </div>
+          <!-- Audit Log View -->
+          <div id="admin-audit-view" class="hidden overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-950 text-slate-400 border-b border-slate-800">
+                  <th class="p-2.5">Timestamp (UTC)</th>
+                  <th class="p-2.5">Phone</th>
+                  <th class="p-2.5">User / Station</th>
+                  <th class="p-2.5">Action</th>
+                  <th class="p-2.5">Details</th>
+                </tr>
+              </thead>
+              <tbody id="audit-logs-body" class="divide-y divide-slate-800/50">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
 
-            <!-- STATION-WISE CONTAINER -->
-            <div id="workerStationWiseContainer" class="space-y-2.5">
-                <div>
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">Tap Slot to Select:</span>
-                        <button onclick="refreshTodayHistory(workerViewingDate)" class="text-[10px] font-bold text-blue-600 hover:underline">
-                            <i class="fa-solid fa-rotate-right mr-0.5"></i> Refresh
-                        </button>
-                    </div>
-                    <div id="slotsGrid" class="grid grid-cols-4 gap-1.5"></div>
-                </div>
+          <!-- System Users View -->
+          <div id="admin-users-view" class="hidden overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-950 text-slate-400 border-b border-slate-800">
+                  <th class="p-2.5">Station / Member</th>
+                  <th class="p-2.5">Role</th>
+                  <th class="p-2.5">Login Status</th>
+                  <th class="p-2.5">Last Login Time</th>
+                </tr>
+              </thead>
+              <tbody id="users-status-body" class="divide-y divide-slate-800/50">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
 
-                <div class="flex bg-slate-100 p-0.5 rounded-xl text-[11px] font-bold text-center">
-                    <button onclick="setMode('single')" id="modeSingleBtn" class="w-1/2 py-1.5 rounded-lg bg-white shadow-sm text-blue-600">
-                        Single Slot Entry
-                    </button>
-                    <button onclick="setMode('accumulative')" id="modeAccBtn" class="w-1/2 py-1.5 rounded-lg text-slate-500 hover:text-slate-700">
-                        <i class="fa-solid fa-layer-group mr-1"></i> Accumulative
-                    </button>
-                </div>
-
-                <div id="singleEntryCard" class="bg-blue-50/40 border border-blue-200 p-2.5 rounded-2xl space-y-2">
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-[10px] font-black uppercase text-blue-700">Slot:</span>
-                            
-                            <button onclick="shiftSelectedSlot(-1)" title="Previous Slot"
-                                    class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-md text-xs transition">
-                                <i class="fa-solid fa-chevron-left"></i>
-                            </button>
-                            
-                            <span id="selectedSlotText" class="text-blue-900 font-extrabold text-xs bg-blue-100 px-2 py-0.5 rounded-md">--</span>
-                            
-                            <button onclick="shiftSelectedSlot(1)" id="nextSlotBtn" title="Next Slot"
-                                    class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-md text-xs transition">
-                                <i class="fa-solid fa-chevron-right"></i>
-                            </button>
-                        </div>
-
-                        <button onclick="setTraceValue()" type="button" class="text-[10px] font-extrabold bg-purple-100 text-purple-700 hover:bg-purple-200 px-2 py-1 rounded-lg transition">
-                            <i class="fa-solid fa-droplet mr-0.5"></i> Trace (T)
-                        </button>
-                    </div>
-
-                    <div class="relative">
-                        <input type="number" step="0.01" id="rainfallInput" placeholder="0.0" 
-                               class="w-full py-2 px-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-2xl font-black text-slate-800 bg-white shadow-inner">
-                        <span class="absolute inset-y-0 right-0 flex items-center pr-3 font-extrabold text-slate-400 text-xs">mm</span>
-                    </div>
-
-                    <div class="flex justify-between items-center text-[10px] font-bold text-slate-400">
-                        <span id="editCountBadge">Slot Updates: 0/3</span>
-                        <button onclick="submitData()" id="submitBtn" 
-                                class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl shadow transition text-xs">
-                            Save Reading
-                        </button>
-                    </div>
-                </div>
-
-                <div id="accumulativeEntryCard" class="hidden bg-purple-50/50 border border-purple-200 p-2.5 rounded-2xl space-y-2">
-                    <p class="text-[10px] font-bold text-purple-800"><i class="fa-solid fa-circle-info mr-0.5"></i> Merges earlier slots into ending slot.</p>
-
-                    <div class="grid grid-cols-2 gap-1.5 text-[11px]">
-                        <div>
-                            <label class="block font-bold text-slate-500 mb-0.5">From Slot</label>
-                            <select id="accStartSlot" class="w-full p-1.5 border rounded-lg font-bold bg-white outline-none text-xs"></select>
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-500 mb-0.5">To Slot (End)</label>
-                            <select id="accEndSlot" class="w-full p-1.5 border rounded-lg font-bold bg-white outline-none text-xs"></select>
-                        </div>
-                    </div>
-
-                    <div class="relative">
-                        <input type="number" step="0.1" id="accRainfallInput" placeholder="Total Rain (mm)" 
-                               class="w-full py-1.5 px-3 border rounded-xl font-black text-slate-800 text-xl bg-white outline-none">
-                        <span class="absolute inset-y-0 right-0 flex items-center pr-3 font-extrabold text-slate-400 text-xs">mm</span>
-                    </div>
-
-                    <button onclick="submitAccumulativeData()" id="accSubmitBtn" 
-                            class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl shadow transition text-xs">
-                        Save Accumulative Reading
-                    </button>
-                </div>
-            </div>
-
-            <!-- MASTER WORKER 7x3 BATCH GRID -->
-            <div id="masterSlotWiseContainer" class="hidden space-y-2.5">
-                <div class="bg-purple-50/70 border border-purple-200 p-2.5 rounded-2xl space-y-2">
-                    <div class="flex justify-between items-center text-xs">
-                        <label class="font-extrabold text-purple-900">Select Slot for Batch Entry:</label>
-                        <select id="masterBatchSlotSelect" onchange="loadMasterSlotWiseGrid()" 
-                                class="p-1.5 bg-white border border-purple-300 rounded-xl font-bold text-purple-900 text-xs outline-none">
-                        </select>
-                    </div>
-
-                    <div id="master7x3Grid" class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 max-h-[350px] overflow-y-auto pr-1"></div>
-
-                    <button onclick="submitMasterBatchReadings()" id="masterBatchSubmitBtn" 
-                            class="w-full bg-purple-600 hover:bg-purple-700 text-white font-extrabold py-3 rounded-xl shadow transition text-xs">
-                        <i class="fa-solid fa-floppy-disk mr-1"></i> Save All Stations for Selected Slot
-                    </button>
-                </div>
-            </div>
-
-            <p id="statusMsg" class="text-xs font-bold text-center p-2 rounded-xl hidden"></p>
+          <!-- PRINT FOOTER (Hides on UI, shows in PDF output) -->
+          <div id="print-footer" class="hidden mt-6 pt-2 border-t border-slate-700 text-[10px] text-slate-600 justify-between">
+            <span>Enterprise Monsoon Observation Network - Karachi Met Region</span>
+            <span id="print-timestamp">Report generated on -- at --</span>
+          </div>
         </div>
+      </section>
+    </main>
 
+    <!-- FOOTER -->
+    <footer class="bg-slate-950 border-t border-slate-800 py-2 px-4 text-center text-[10px] text-slate-500">
+      Met GIS Services &copy; 2026. Confidential Meteorological Infrastructure.
+    </footer>
+  </div>
 
-        <!-- MASTER ADMIN DASHBOARD -->
-        <div id="adminDashboard" class="hidden space-y-3">
-            
-            <div class="flex justify-between items-center border-b pb-2.5 no-print">
-                <div>
-                    <h2 class="text-base font-black text-slate-800">👑 Master Admin Dashboard</h2>
-                    <p id="adminSubHeading" class="text-[10px] font-bold text-slate-400">Tap Any Cell in Table to Amend Reading</p>
-                </div>
-                <button onclick="logout()" class="text-xs font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-xl hover:bg-red-50 hover:text-red-600">
-                    Logout
-                </button>
-            </div>
+  <!-- ================= ADMIN AMENDMENT MODAL ================= -->
+  <div id="amend-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <h3 class="text-sm font-bold text-white">Admin Slot Amendment</h3>
+        <button onclick="closeAmendModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
 
-            <!-- ADMIN 4-WAY TOGGLE -->
-            <div class="flex bg-slate-100 p-0.5 rounded-xl text-[11px] font-bold text-center no-print">
-                <button onclick="setAdminViewMode('daily')" id="adminModeDailyBtn" class="w-1/4 py-1.5 rounded-lg bg-white shadow-sm text-blue-600">
-                    <i class="fa-solid fa-calendar-day mr-0.5"></i> Daily
-                </button>
-                <button onclick="setAdminViewMode('monthly')" id="adminModeMonthlyBtn" class="w-1/4 py-1.5 rounded-lg text-slate-500 hover:text-slate-700">
-                    <i class="fa-solid fa-calendar-days mr-0.5"></i> Monthly
-                </button>
-                <button onclick="setAdminViewMode('logs')" id="adminModeLogsBtn" class="w-1/4 py-1.5 rounded-lg text-slate-500 hover:text-slate-700">
-                    <i class="fa-solid fa-list-check mr-0.5"></i> Audit Log
-                </button>
-                <button onclick="setAdminViewMode('users')" id="adminModeUsersBtn" class="w-1/4 py-1.5 rounded-lg text-slate-500 hover:text-slate-700">
-                    <i class="fa-solid fa-users mr-0.5"></i> Users
-                </button>
-            </div>
+      <div class="space-y-2 text-xs text-slate-300">
+        <div><span class="text-slate-500">Station:</span> <strong id="amend-station-name" class="text-cyan-400"></strong></div>
+        <div><span class="text-slate-500">Target Date:</span> <strong id="amend-target-date" class="text-cyan-400"></strong></div>
+        <div><span class="text-slate-500">UTC Slot:</span> <strong id="amend-slot-label" class="text-cyan-400"></strong></div>
+      </div>
 
-            <!-- DAILY CONTROLS WITH MAP & PDF BUTTONS -->
-            <div id="adminDailyControls" class="flex flex-wrap justify-between items-center gap-2 bg-blue-50 p-2.5 rounded-2xl no-print">
-                <div class="flex items-center gap-1 text-xs font-bold text-blue-900">
-                    <span>Date:</span>
-                    <button onclick="shiftAdminDate(-1)" title="Previous Day" 
-                            class="bg-white border border-blue-200 text-blue-800 hover:bg-blue-100 px-2 py-0.5 rounded-lg text-xs transition">
-                        <i class="fa-solid fa-chevron-left"></i>
-                    </button>
-                    <input type="date" id="adminDatePicker" onchange="loadAdminMasterSummary()" 
-                           class="bg-white border border-blue-200 text-blue-900 font-bold px-2 py-0.5 rounded-xl outline-none text-xs">
-                    <button onclick="shiftAdminDate(1)" id="adminNextDayBtn" title="Next Day" 
-                            class="bg-white border border-blue-200 text-blue-800 hover:bg-blue-100 px-2 py-0.5 rounded-lg text-xs transition">
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </button>
-                </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1">New Value (mm):</label>
+        <input type="number" step="0.1" id="amend-value-input" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm font-bold text-white focus:outline-none focus:border-cyan-500">
+      </div>
 
-                <div class="flex items-center gap-2">
-                    <button onclick="toggleMapTableMode()" id="mapToggleBtnDaily" 
-                            class="bg-white border border-blue-200 text-blue-900 hover:bg-blue-100 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm">
-                        <i class="fa-solid fa-globe text-blue-600"></i> <span id="mapToggleTextDaily">Map View</span>
-                    </button>
-
-                    <button onclick="generateSinglePagePDF()" 
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow flex items-center gap-1">
-                        <i class="fa-solid fa-file-pdf"></i> Save / Print PDF
-                    </button>
-                </div>
-            </div>
-
-            <!-- MONTHLY CONTROLS WITH MAP & PDF BUTTONS -->
-            <div id="adminMonthlyControls" class="hidden flex flex-wrap justify-between items-center gap-2 bg-purple-50 p-2.5 rounded-2xl no-print">
-                <div class="flex items-center gap-1.5 text-xs font-bold text-purple-900">
-                    <span>Select Month:</span>
-                    <input type="month" id="adminMonthPicker" onchange="loadAdminMonthlySummary()" 
-                           class="bg-white border border-purple-200 text-purple-900 font-bold px-2.5 py-1 rounded-xl outline-none text-xs">
-                </div>
-
-                <div class="flex items-center gap-2">
-                    <button onclick="toggleMapTableMode()" id="mapToggleBtnMonthly" 
-                            class="bg-white border border-purple-200 text-purple-900 hover:bg-purple-100 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm">
-                        <i class="fa-solid fa-globe text-purple-600"></i> <span id="mapToggleTextMonthly">Map View</span>
-                    </button>
-
-                    <button onclick="generateSinglePagePDF()" 
-                            class="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow flex items-center gap-1">
-                        <i class="fa-solid fa-file-pdf"></i> Save Landscape PDF
-                    </button>
-                </div>
-            </div>
-
-            <!-- LOGS CONTROLS -->
-            <div id="adminLogsControls" class="hidden flex justify-between items-center bg-amber-50 p-2.5 rounded-2xl no-print">
-                <span class="text-xs font-extrabold text-amber-900"><i class="fa-solid fa-shield-halved mr-1"></i> User Activity Audit Trail (Full Admin Only)</span>
-                <button onclick="loadAdminActivityLogs()" class="text-xs font-bold bg-amber-100 text-amber-900 hover:bg-amber-200 px-3 py-1 rounded-xl transition">
-                    <i class="fa-solid fa-rotate-right mr-1"></i> Refresh Logs
-                </button>
-            </div>
-
-            <!-- USERS STATUS CONTROLS -->
-            <div id="adminUsersControls" class="hidden flex justify-between items-center bg-emerald-50 p-2.5 rounded-2xl no-print">
-                <span class="text-xs font-extrabold text-emerald-900"><i class="fa-solid fa-users mr-1"></i> System Members Login Status Overview</span>
-                <button onclick="loadAdminSystemUsers()" class="text-xs font-bold bg-emerald-100 text-emerald-900 hover:bg-emerald-200 px-3 py-1 rounded-xl transition">
-                    <i class="fa-solid fa-rotate-right mr-1"></i> Refresh Status
-                </button>
-            </div>
-
-            <!-- PRINT HEADER -->
-            <div class="hidden print-only text-center mb-2">
-                <h2 style="font-size: 15px; font-weight: bold;" id="printHeaderTitle">MONSOON RAINFALL SUMMARY REPORT</h2>
-                <p style="font-size: 10px;" id="printHeaderSubtitle">Meteorological Rainfall Date: <span id="adminPrintDate">--</span></p>
-            </div>
-
-            <!-- MAP CONTAINER -->
-            <div id="adminMapContainer" class="hidden relative h-[420px] w-full rounded-2xl border border-slate-200 shadow-inner overflow-hidden z-10">
-                <div id="leafletMapDiv" class="h-full w-full"></div>
-                <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-md p-2.5 rounded-xl border border-slate-200 shadow-lg text-[10px] space-y-1 z-[1000]">
-                    <p class="font-black text-slate-800 text-[11px] mb-1">🌧️ Rainfall Legend</p>
-                    <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-400 border border-white"></span> No Rain (0.0 mm)</div>
-                    <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-purple-500 border border-white"></span> Trace (T / 0.01 mm)</div>
-                    <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 border border-white"></span> Light Rain (0.1 - 10 mm)</div>
-                    <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-600 border border-white"></span> Moderate Rain (10 - 50 mm)</div>
-                    <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-600 border border-white"></span> Heavy Rain (> 50 mm)</div>
-                </div>
-            </div>
-
-            <!-- DAILY MATRIX TABLE -->
-            <div id="adminDailyTableContainer" class="overflow-x-auto">
-                <table id="adminMatrixTable" class="w-full text-[10px] text-center border-collapse">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-700 font-bold">
-                            <th class="p-1.5 border text-left">Station</th>
-                            <th class="p-1 border">03-06</th>
-                            <th class="p-1 border">06-09</th>
-                            <th class="p-1 border">09-12</th>
-                            <th class="p-1 border">12-15</th>
-                            <th class="p-1 border">15-18</th>
-                            <th class="p-1 border">18-21</th>
-                            <th class="p-1 border">21-00</th>
-                            <th class="p-1 border">00-03</th>
-                            <th class="p-1.5 border bg-blue-100 text-blue-900 font-black">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="adminTableBody"></tbody>
-                </table>
-            </div>
-
-            <!-- MONTHLY MATRIX TABLE -->
-            <div id="adminMonthlyTableContainer" class="hidden overflow-x-auto">
-                <table id="adminMonthlyMatrixTable" class="w-full text-[9px] text-center border-collapse">
-                    <thead id="adminMonthlyTableHeader"></thead>
-                    <tbody id="adminMonthlyTableBody"></tbody>
-                </table>
-            </div>
-
-            <!-- USER ACTIVITY LOGS TABLE -->
-            <div id="adminLogsTableContainer" class="hidden overflow-x-auto max-h-[400px]">
-                <table id="adminLogsTable" class="w-full text-[10px] text-left border-collapse">
-                    <thead>
-                        <tr class="bg-amber-100/70 text-amber-900 font-bold">
-                            <th class="p-2 border">Timestamp (UTC)</th>
-                            <th class="p-2 border">User Phone</th>
-                            <th class="p-2 border">Role</th>
-                            <th class="p-2 border">Station</th>
-                            <th class="p-2 border">Category</th>
-                            <th class="p-2 border">Details</th>
-                        </tr>
-                    </thead>
-                    <tbody id="adminLogsTableBody"></tbody>
-                </table>
-            </div>
-
-            <!-- SYSTEM USERS TABLE -->
-            <div id="adminUsersTableContainer" class="hidden overflow-x-auto">
-                <table id="adminUsersTable" class="w-full text-[10px] text-left border-collapse">
-                    <thead>
-                        <tr class="bg-emerald-100/70 text-emerald-900 font-bold">
-                            <th class="p-2 border">Name / Station</th>
-                            <th class="p-2 border">Phone Number</th>
-                            <th class="p-2 border text-center">User Role</th>
-                            <th class="p-2 border text-center">Status</th>
-                            <th class="p-2 border">Last Login (UTC)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="adminUsersTableBody"></tbody>
-                </table>
-            </div>
-
-            <!-- PRINT FOOTER WITH UTC AND PKT REAL-TIME TIMESTAMP -->
-            <div class="hidden print-only text-[10px] mt-3 flex justify-between">
-                <span>Report Generated At: <span id="printGeneratedTime">--</span></span>
-                <span>Verified By: ___________________</span>
-            </div>
-
-        </div>
-
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="setAmendTrace()" class="py-2 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold">Set Trace (T)</button>
+        <button onclick="saveAdminAmendment()" class="py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-cyan-600/20">Save Override</button>
+      </div>
     </div>
+  </div>
 
-    <!-- ADMIN AMENDMENT MODAL -->
-    <div id="adminModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 hidden z-50 no-print">
-        <div class="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-3 border border-slate-200">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-black text-slate-800 text-xs">👑 Admin Amend Reading</h3>
-                <button onclick="closeAdminModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-base"></i></button>
-            </div>
-            
-            <div class="text-[11px] space-y-0.5 bg-slate-50 p-2.5 rounded-xl">
-                <p><strong>Station:</strong> <span id="modalStation"></span></p>
-                <p><strong>UTC Slot:</strong> <span id="modalSlot"></span></p>
-            </div>
-
-            <div>
-                <div class="flex justify-between items-center mb-1">
-                    <label class="block text-[11px] font-bold text-slate-600">New Rain Amount (mm)</label>
-                    <button onclick="setModalTrace()" type="button" class="text-[10px] font-extrabold bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Trace (T)</button>
-                </div>
-                <input type="number" step="0.01" id="modalInput" placeholder="0.0" class="w-full p-2.5 border rounded-xl font-black text-slate-800 text-xl">
-            </div>
-
-            <div class="flex gap-2">
-                <button onclick="closeAdminModal()" class="w-1/2 bg-slate-100 text-slate-600 font-bold py-2.5 rounded-xl text-xs">Cancel</button>
-                <button onclick="submitAdminAmend()" id="modalSaveBtn" class="w-1/2 bg-blue-600 text-white font-bold py-2.5 rounded-xl text-xs shadow">Save</button>
-            </div>
-            <p id="modalMsg" class="text-xs font-bold text-center hidden"></p>
-        </div>
-    </div>
-
-    <!-- RESET PIN MODAL VIA WHATSAPP OTP -->
-    <div id="resetPinModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 hidden z-50 no-print">
-        <div class="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-3 border border-slate-200">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-black text-slate-800 text-xs"><i class="fa-brands fa-whatsapp text-green-500 mr-1"></i> Reset PIN via WhatsApp</h3>
-                <button onclick="closeResetPinModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-base"></i></button>
-            </div>
-
-            <div id="otpStep1" class="space-y-2">
-                <p class="text-[11px] text-slate-500">Enter your registered mobile number to receive a 4-digit reset OTP on WhatsApp.</p>
-                <input type="tel" id="resetPhoneInput" placeholder="Enter Mobile Number" class="w-full p-2.5 border rounded-xl font-bold text-slate-800 text-xs outline-none">
-                <button onclick="requestWhatsAppOTP()" id="sendOtpBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl text-xs shadow">Send OTP to WhatsApp</button>
-            </div>
-
-            <div id="otpStep2" class="hidden space-y-2">
-                <p class="text-[11px] text-slate-500">Check WhatsApp for your 4-digit OTP code, then enter your new PIN below.</p>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 mb-0.5">WhatsApp OTP Code</label>
-                    <input type="text" maxlength="4" id="otpInput" placeholder="1234" class="w-full p-2 border rounded-xl font-black text-slate-800 text-base text-center outline-none">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 mb-0.5">New 4-Digit PIN</label>
-                    <input type="password" maxlength="4" id="newPinInput" placeholder="••••" class="w-full p-2 border rounded-xl font-black text-slate-800 text-base text-center tracking-widest outline-none">
-                </div>
-                <button onclick="submitPinReset()" id="resetPinBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow">Update PIN & Log In</button>
-            </div>
-
-            <p id="otpMsg" class="text-xs font-bold text-center hidden p-2 rounded-xl"></p>
-        </div>
-    </div>
-
-    <script src="app.js"></script>
+  <?!= include('app'); ?>
 </body>
 </html>
