@@ -1,22 +1,100 @@
-/* Custom CSS for Monsoon Rainfall Dashboard */
-.leaflet-container {
-    font-family: inherit;
-    z-index: 10;
-}
-
-/* Custom Scrollbar for 7x3 Grid & Tables */
+/* Custom Scrollbars */
 ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 8px;
+  background: #020617;
 }
 ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 8px;
+  background: #1e293b;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+  background: #334155;
+}
+
+/* Zero-Scroll Compact Layout Tweaks */
+body {
+  touch-action: manipulation;
+}
+
+/* Slot Card State Styles */
+.slot-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.slot-card.active {
+  border-color: #06b6d4;
+  background-color: rgba(6, 182, 212, 0.1);
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.25);
+}
+.slot-card.recorded {
+  border-color: #22c55e;
+  background-color: rgba(34, 197, 94, 0.08);
+}
+.slot-card.merged {
+  border-color: #a855f7;
+  background-color: rgba(168, 85, 247, 0.08);
+}
+.slot-card.locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.8);
+}
+
+/* Leaflet GIS Map Styling */
+.leaflet-container {
+  background-color: #090d16 !important;
+  font-family: inherit;
+}
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155;
+  border-radius: 12px;
+}
+.leaflet-popup-content {
+  margin: 10px 14px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Custom Circle Pulsing Marker for Active GIS Rainfall */
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 0.4; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+.gis-pulse-marker {
+  animation: pulse-ring 2s infinite ease-in-out;
+}
+
+/* Print & PDF Export Overrides */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  #admin-tabs, #admin-daily-controls, #admin-monthly-controls, #toggle-map-btn, header, footer {
+    display: none !important;
+  }
+  #printable-area {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    color: #000000 !important;
+  }
+  #print-header, #print-footer {
+    display: flex !important;
+  }
+  table {
+    color: #000000 !important;
+  }
+  th {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+  }
+  td {
+    border-bottom: 1px solid #cbd5e1 !important;
+  }
 }
